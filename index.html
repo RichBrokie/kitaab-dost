@@ -186,6 +186,44 @@
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
           <path d="M3 3v5h5" />
         </>
+      ),
+      User: (
+        <>
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </>
+      ),
+      LogOut: (
+        <>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" x2="9" y1="12" y2="12" />
+        </>
+      ),
+      LogIn: (
+        <>
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <polyline points="10 17 15 12 10 7" />
+          <line x1="15" x2="3" y1="12" y2="12" />
+        </>
+      ),
+      ShieldCheck: (
+        <>
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <path d="m9 12 2 2 4-4" />
+        </>
+      ),
+      Lock: (
+        <>
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </>
+      ),
+      Mail: (
+        <>
+          <rect width="20" height="16" x="2" y="4" rx="2" />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </>
       )
     };
 
@@ -524,6 +562,203 @@
         }
       }, [requests]);
 
+      // Auth & Profile State
+      const [currentUser, setCurrentUser] = useState(() => {
+        try {
+          const saved = localStorage.getItem('bookbridge_user');
+          return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+          return null;
+        }
+      });
+      const [showAuthModal, setShowAuthModal] = useState(false);
+      const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'signup'
+      const [authRole, setAuthRole] = useState('school'); // 'school' | 'ngo'
+      const [authEmail, setAuthEmail] = useState('');
+      const [authPassword, setAuthPassword] = useState('');
+      const [authName, setAuthName] = useState('');
+      const [authOrg, setAuthOrg] = useState('');
+      const [authLocation, setAuthLocation] = useState('Lahore, Punjab');
+      const [authPhone, setAuthPhone] = useState('+92 300 1234567');
+      const [authLoading, setAuthLoading] = useState(false);
+      const [authError, setAuthError] = useState(null);
+
+      useEffect(() => {
+        try {
+          if (currentUser) {
+            localStorage.setItem('bookbridge_user', JSON.stringify(currentUser));
+          } else {
+            localStorage.removeItem('bookbridge_user');
+          }
+        } catch (e) {}
+      }, [currentUser]);
+
+      // Supabase Auth session watcher
+      useEffect(() => {
+        if (supabaseClient) {
+          supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              const meta = session.user.user_metadata || {};
+              setCurrentUser({
+                id: session.user.id,
+                email: session.user.email,
+                role: meta.role || 'school',
+                name: meta.name || session.user.email.split('@')[0],
+                organization: meta.organization || meta.name || 'Partner School',
+                location: meta.location || 'Pakistan',
+                phone: meta.phone || ''
+              });
+            }
+          });
+
+          const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+              const meta = session.user.user_metadata || {};
+              setCurrentUser({
+                id: session.user.id,
+                email: session.user.email,
+                role: meta.role || 'school',
+                name: meta.name || session.user.email.split('@')[0],
+                organization: meta.organization || meta.name || 'Partner School',
+                location: meta.location || 'Pakistan',
+                phone: meta.phone || ''
+              });
+            } else if (event === 'SIGNED_OUT') {
+              setCurrentUser(null);
+            }
+          });
+
+          return () => {
+            authListener?.subscription?.unsubscribe();
+          };
+        }
+      }, []);
+
+      const handleDemoLogin = (roleType) => {
+        if (roleType === 'school') {
+          const demoSchool = {
+            id: 'usr-school-demo',
+            email: 'tahira@alnoor.edu.pk',
+            role: 'school',
+            name: 'Mrs. Tahira Perveen (Principal)',
+            organization: 'Al-Noor Community Model School',
+            location: 'Lahore, Punjab',
+            phone: '+92 300 4128901'
+          };
+          setCurrentUser(demoSchool);
+          setActivePortal('school');
+          setShowAuthModal(false);
+          triggerToast('Welcome, Principal Tahira!', 'Signed in as Al-Noor Community Model School.');
+        } else {
+          const demoNgo = {
+            id: 'usr-ngo-demo',
+            email: 'contact@readpakistan.org',
+            role: 'ngo',
+            name: 'Tariq Mansoor (Program Director)',
+            organization: 'Read Pakistan Foundation',
+            location: 'Gulberg, Lahore',
+            phone: '+92 321 8899001'
+          };
+          setCurrentUser(demoNgo);
+          setActivePortal('ngo');
+          setShowAuthModal(false);
+          triggerToast('Welcome, Read Pakistan Foundation!', 'Signed in as Verified NGO Donor.');
+        }
+      };
+
+      const handleAuthSubmit = async (e) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        setAuthError(null);
+
+        try {
+          if (!supabaseClient) {
+            const simulatedUser = {
+              id: `usr-${Date.now()}`,
+              email: authEmail,
+              role: authRole,
+              name: authName || (authRole === 'school' ? 'School Administrator' : 'NGO Representative'),
+              organization: authOrg || (authRole === 'school' ? 'Local Model School' : 'Education Trust'),
+              location: authLocation,
+              phone: authPhone
+            };
+            setCurrentUser(simulatedUser);
+            setActivePortal(authRole);
+            setShowAuthModal(false);
+            triggerToast('Signed In!', `Welcome, ${simulatedUser.organization}!`);
+            return;
+          }
+
+          if (authMode === 'signup') {
+            const { data, error } = await supabaseClient.auth.signUp({
+              email: authEmail,
+              password: authPassword,
+              options: {
+                data: {
+                  role: authRole,
+                  name: authName,
+                  organization: authOrg,
+                  location: authLocation,
+                  phone: authPhone
+                }
+              }
+            });
+            if (error) throw error;
+            if (data?.user) {
+              const u = {
+                id: data.user.id,
+                email: data.user.email,
+                role: authRole,
+                name: authName || data.user.email.split('@')[0],
+                organization: authOrg || authName || 'Partner',
+                location: authLocation,
+                phone: authPhone
+              };
+              setCurrentUser(u);
+              setActivePortal(authRole);
+              setShowAuthModal(false);
+              triggerToast('Account Registered!', `Welcome to Kitaab Dost, ${u.organization}!`);
+            }
+          } else {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+              email: authEmail,
+              password: authPassword
+            });
+            if (error) throw error;
+            if (data?.user) {
+              const meta = data.user.user_metadata || {};
+              const u = {
+                id: data.user.id,
+                email: data.user.email,
+                role: meta.role || authRole,
+                name: meta.name || data.user.email.split('@')[0],
+                organization: meta.organization || meta.name || 'Organization',
+                location: meta.location || 'Pakistan',
+                phone: meta.phone || ''
+              };
+              setCurrentUser(u);
+              setActivePortal(u.role);
+              setShowAuthModal(false);
+              triggerToast('Welcome Back!', `Signed in as ${u.organization}.`);
+            }
+          }
+        } catch (err) {
+          setAuthError(err.message || 'Authentication error. Please check credentials.');
+        } finally {
+          setAuthLoading(false);
+        }
+      };
+
+      const handleSignOut = async () => {
+        if (supabaseClient) {
+          try {
+            await supabaseClient.auth.signOut();
+          } catch (e) {}
+        }
+        setCurrentUser(null);
+        triggerToast('Signed Out', 'You have been safely signed out.');
+      };
+
       // Toast Notification state with timeout ref to prevent race conditions
       const [toast, setToast] = useState(null);
       const toastTimeoutRef = useRef(null);
@@ -702,11 +937,38 @@
         }
       };
 
+      const handleToggleNewRequestForm = () => {
+        if (!showNewRequestForm && !currentUser) {
+          setAuthRole('school');
+          setAuthMode('signin');
+          setShowAuthModal(true);
+          triggerToast('Sign-In Required', 'Please sign in or use 1-click Demo School login to post requests.');
+          return;
+        }
+        if (!showNewRequestForm && currentUser?.role === 'school') {
+          setNewRequest((prev) => ({
+            ...prev,
+            schoolName: currentUser.organization || prev.schoolName,
+            location: currentUser.location || prev.location,
+            contactPerson: currentUser.name || prev.contactPerson,
+            contactPhone: currentUser.phone || prev.contactPhone
+          }));
+        }
+        setShowNewRequestForm(!showNewRequestForm);
+      };
+
       const openDonateModal = (req) => {
+        if (!currentUser) {
+          setAuthRole('ngo');
+          setAuthMode('signin');
+          setShowAuthModal(true);
+          triggerToast('Sign-In Required', 'Please sign in or use 1-click Demo NGO login to pledge books.');
+          return;
+        }
         const remaining = Math.max(1, req.quantityNeeded - req.quantityPledged);
         setActiveDonateReq(req);
         setPledgeData({
-          ngoName: 'Read Pakistan Foundation',
+          ngoName: currentUser.role === 'ngo' ? currentUser.organization : 'Read Pakistan Foundation',
           quantity: remaining,
           note: 'We have these books in stock and will dispatch them within 48 hours.',
           markShippedImmediately: false
@@ -995,6 +1257,50 @@
                   </div>
                 </div>
               </div>
+
+              {/* User Account / Profile Section */}
+              <div className="flex items-center gap-3">
+                {currentUser ? (
+                  <div className="flex items-center gap-3 bg-stone-50 px-3.5 py-2 rounded-2xl border border-stone-200 shadow-sm">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-stone-950 font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                      {currentUser.role === 'school' ? '🏫' : '🤝'}
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-stone-900 leading-tight truncate max-w-[170px]">
+                          {currentUser.organization}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                          currentUser.role === 'school' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {currentUser.role === 'school' ? 'School' : 'NGO'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-stone-500 truncate max-w-[170px]">
+                        {currentUser.name}
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleSignOut}
+                      title="Sign Out"
+                      className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Icon name="LogOut" className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setAuthMode('signin');
+                      setShowAuthModal(true);
+                    }}
+                    className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                  >
+                    <Icon name="LogIn" className="w-4 h-4 text-amber-400" />
+                    <span>Sign In / Register</span>
+                  </button>
+                )}
+              </div>
             </div>
           </header>
 
@@ -1022,7 +1328,7 @@
 
                   <div className="flex flex-wrap items-center gap-3 shrink-0">
                     <button
-                      onClick={() => setShowNewRequestForm(!showNewRequestForm)}
+                      onClick={handleToggleNewRequestForm}
                       className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white font-semibold px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
                     >
                       <Icon name="PlusCircle" className="w-5 h-5 text-amber-400" />
@@ -2135,6 +2441,242 @@
                     >
                       <Icon name="Check" className="w-4 h-4" />
                       <span>Confirm Books Received in Classroom</span>
+                    </button>
+          {/* ==========================================
+              MODAL: USER AUTHENTICATION & LOGIN (SCHOOL / NGO)
+             ========================================== */}
+          {showAuthModal && (
+            <div className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-6">
+                {/* Modal Header */}
+                <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Icon name="Lock" className="w-3.5 h-3.5" />
+                      <span>Kitaab Dost User Portal</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-stone-900 mt-2">
+                      {authMode === 'signin' ? 'Sign In to Your Account' : 'Register New Account'}
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      {authMode === 'signin' 
+                        ? 'Access your school requests or manage NGO book pledges'
+                        : 'Connect your school or charity to the national book network'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAuthModal(false)}
+                    className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                  >
+                    <Icon name="X" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* 1-Click Quick Demo Sign-In Box */}
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                    <Icon name="Sparkles" className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Instant 1-Click Demo Profiles</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('school')}
+                      className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 text-xs font-semibold text-left transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className="text-base">🏫</span>
+                      <div className="truncate">
+                        <div>Al-Noor School</div>
+                        <div className="text-[10px] text-amber-800 font-normal">Principal Tahira</div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('ngo')}
+                      className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-200 text-xs font-semibold text-left transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className="text-base">🤝</span>
+                      <div className="truncate">
+                        <div>Read Pakistan</div>
+                        <div className="text-[10px] text-emerald-800 font-normal">Verified NGO</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode Selector Tabs (Sign In vs Register) */}
+                <div className="flex bg-stone-100 p-1 rounded-xl text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signin'); setAuthError(null); }}
+                    className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                      authMode === 'signin'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signup'); setAuthError(null); }}
+                    className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                      authMode === 'signup'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+
+                {/* Error Banner */}
+                {authError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
+                    <Icon name="AlertCircle" className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+                  {/* Role Selector (visible during signup) */}
+                  {authMode === 'signup' && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600">
+                        I represent: *
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAuthRole('school')}
+                          className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            authRole === 'school'
+                              ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-2 ring-amber-200'
+                              : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                          }`}
+                        >
+                          <Icon name="School" className="w-4 h-4 text-amber-600" />
+                          <span>School / Teacher</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAuthRole('ngo')}
+                          className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            authRole === 'ngo'
+                              ? 'border-emerald-500 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-200'
+                              : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                          }`}
+                        >
+                          <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600" />
+                          <span>NGO / Donor</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {authMode === 'signup' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                          {authRole === 'school' ? 'Official School Name *' : 'NGO / Foundation Name *'}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={authOrg}
+                          onChange={(e) => setAuthOrg(e.target.value)}
+                          placeholder={authRole === 'school' ? 'e.g., Al-Qalam Model High School' : 'e.g., The Citizens Foundation'}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                            Contact Person *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={authName}
+                            onChange={(e) => setAuthName(e.target.value)}
+                            placeholder="e.g., Tahira Perveen"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                            City / District *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={authLocation}
+                            onChange={(e) => setAuthLocation(e.target.value)}
+                            placeholder="e.g., Lahore, Punjab"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                          Official Phone / WhatsApp *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value)}
+                          placeholder="e.g., +92 300 1234567"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="e.g., contact@myschool.edu.pk"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">
+                      Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {authLoading ? (
+                        <span>Processing...</span>
+                      ) : (
+                        <>
+                          <Icon name={authMode === 'signin' ? 'LogIn' : 'Check'} className="w-4 h-4 text-amber-400" />
+                          <span>{authMode === 'signin' ? 'Sign In to Kitaab Dost' : 'Complete Registration'}</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
