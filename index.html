@@ -688,6 +688,9 @@
           } else if (activePortal === 'gateway') {
             setActivePortal(currentUser.role);
           }
+          if (currentUser.role === 'school') {
+            setSchoolFilterScope('my');
+          }
         }
       }, [currentUser, activePortal]);
 
@@ -714,6 +717,7 @@
 
       // School Portal Filter & Form state
       const [schoolFilterName, setSchoolFilterName] = useState('All Schools');
+      const [schoolFilterScope, setSchoolFilterScope] = useState('my'); // 'my' | 'all'
       const [showNewRequestForm, setShowNewRequestForm] = useState(false);
       const [newRequest, setNewRequest] = useState({
         schoolName: '',
@@ -809,18 +813,36 @@
         return ['All Schools', ...names];
       }, [requests]);
 
+      const isSchoolUser = currentUser?.role === 'school';
+      const userSchoolOrg = (currentUser?.organization || '').trim();
+
+      const mySchoolRequests = useMemo(() => {
+        if (!isSchoolUser || !userSchoolOrg) return [];
+        return requests.filter(
+          (r) => (r.schoolName || '').trim().toLowerCase() === userSchoolOrg.toLowerCase()
+        );
+      }, [requests, isSchoolUser, userSchoolOrg]);
+
       const filteredSchoolRequests = useMemo(() => {
+        if (isSchoolUser && schoolFilterScope === 'my') {
+          return mySchoolRequests;
+        }
         if (schoolFilterName === 'All Schools') return requests;
         return requests.filter((r) => r.schoolName === schoolFilterName);
-      }, [requests, schoolFilterName]);
+      }, [requests, isSchoolUser, schoolFilterScope, mySchoolRequests, schoolFilterName]);
 
       const handleCreateRequest = async (e) => {
         e.preventDefault();
-        if (!newRequest.bookTitle.trim() || !newRequest.schoolName.trim()) return;
+        const effectiveSchoolName = (currentUser?.role === 'school' && currentUser?.organization)
+          ? currentUser.organization.trim()
+          : newRequest.schoolName.trim();
+
+        if (!newRequest.bookTitle.trim() || !effectiveSchoolName) return;
 
         const created = {
           id: `req-${Date.now()}`,
           ...newRequest,
+          schoolName: effectiveSchoolName,
           quantityNeeded: Number(newRequest.quantityNeeded) || 25,
           quantityPledged: 0,
           status: 'Pending',
@@ -922,9 +944,13 @@
 
         const validQty = Math.min(Math.max(1, Number(pledgeData.quantity) || 1), remaining);
 
+        const effectiveNgoName = (currentUser?.role === 'ngo' && currentUser?.organization)
+          ? currentUser.organization.trim()
+          : (pledgeData.ngoName.trim() || 'Partner Education NGO');
+
         const newPledgeObj = {
           id: `p-${Date.now()}`,
-          ngoName: pledgeData.ngoName.trim() || 'Partner Education NGO',
+          ngoName: effectiveNgoName,
           quantity: validQty,
           note:
             pledgeData.note.trim() ||
@@ -978,6 +1004,22 @@
       };
 
       const handleMarkAsShipped = async (reqId) => {
+        const targetReq = requests.find((r) => r.id === reqId);
+        if (!targetReq) return;
+
+        const userNgo = (currentUser?.organization || '').trim().toLowerCase();
+        const hasPledged = (targetReq.pledges || []).some(
+          (p) => (p.ngoName || '').trim().toLowerCase() === userNgo
+        );
+
+        if (!hasPledged && currentUser?.role !== 'admin') {
+          triggerToast(
+            'Unauthorized Action',
+            'Only the donor NGO that pledged books to this request can mark it as dispatched.'
+          );
+          return;
+        }
+
         setRequests((prev) =>
           prev.map((r) => (r.id === reqId ? { ...r, status: 'Shipped' } : r))
         );
@@ -1002,9 +1044,21 @@
         e.preventDefault();
         if (!confirmDeliveryReq) return;
 
+        const userSchool = (currentUser?.organization || '').trim().toLowerCase();
+        const targetSchool = (confirmDeliveryReq.schoolName || '').trim().toLowerCase();
+
+        if (currentUser?.role !== 'school' || userSchool !== targetSchool) {
+          triggerToast(
+            'Unauthorized Action',
+            `Only the administration of "${confirmDeliveryReq.schoolName}" can confirm delivery of this package.`
+          );
+          setConfirmDeliveryReq(null);
+          return;
+        }
+
         const schoolAck = {
           id: `p-ack-${Date.now()}`,
-          ngoName: '🏫 School Receipt Confirmed',
+          ngoName: `🏫 ${confirmDeliveryReq.schoolName} (Receipt Confirmed)`,
           quantity: confirmDeliveryReq.quantityPledged,
           note: receiptNote.trim() || 'All books received safely and placed in classroom circulation. Heartfelt thanks to donors!',
           date: 'Just now'
@@ -1462,18 +1516,28 @@
 
                     <form onSubmit={handleCreateRequest} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
-                          School Name *
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5 flex items-center justify-between">
+                          <span>School Name *</span>
+                          {currentUser?.role === 'school' && (
+                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Verified School
+                            </span>
+                          )}
                         </label>
                         <input
                           type="text"
                           required
-                          value={newRequest.schoolName}
+                          readOnly={currentUser?.role === 'school'}
+                          value={currentUser?.role === 'school' ? currentUser.organization : newRequest.schoolName}
                           onChange={(e) =>
                             setNewRequest({ ...newRequest, schoolName: e.target.value })
                           }
                           placeholder="e.g., Al-Noor Community Model School"
-                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                          className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${
+                            currentUser?.role === 'school'
+                              ? 'bg-stone-100 border-stone-300 text-stone-700 cursor-not-allowed font-medium'
+                              : 'border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200'
+                          }`}
                         />
                       </div>
 
@@ -1690,23 +1754,56 @@
                         Track School Book Requests & Incoming Pledges
                       </h3>
                       <p className="text-xs text-stone-500">
-                        Monitor real-time donation progress and delivery notes from partner NGOs
+                        {isSchoolUser
+                          ? `Managing requests for ${currentUser?.organization || 'your school'}`
+                          : 'Monitor real-time donation progress and delivery notes from partner NGOs'}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-stone-500">Filter by School:</span>
-                      <select
-                        value={schoolFilterName}
-                        onChange={(e) => setSchoolFilterName(e.target.value)}
-                        className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm font-medium text-stone-800 focus:outline-none focus:border-amber-500"
-                      >
-                        {schoolNamesList.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {isSchoolUser && (
+                        <div className="inline-flex p-1 bg-stone-200/80 rounded-xl text-xs font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setSchoolFilterScope('my')}
+                            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                              schoolFilterScope === 'my'
+                                ? 'bg-white text-stone-900 shadow-sm'
+                                : 'text-stone-600 hover:text-stone-900'
+                            }`}
+                          >
+                            My School's Requests ({mySchoolRequests.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSchoolFilterScope('all')}
+                            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                              schoolFilterScope === 'all'
+                                ? 'bg-white text-stone-900 shadow-sm'
+                                : 'text-stone-600 hover:text-stone-900'
+                            }`}
+                          >
+                            All Schools Directory
+                          </button>
+                        </div>
+                      )}
+
+                      {(!isSchoolUser || schoolFilterScope === 'all') && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-stone-500">Filter:</span>
+                          <select
+                            value={schoolFilterName}
+                            onChange={(e) => setSchoolFilterName(e.target.value)}
+                            className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm font-medium text-stone-800 focus:outline-none focus:border-amber-500"
+                          >
+                            {schoolNamesList.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1714,10 +1811,14 @@
                     <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
                       <Icon name="BookOpen" className="w-12 h-12 text-stone-300 mx-auto" />
                       <h3 className="text-lg font-bold text-stone-800">
-                        No book requests found
+                        {isSchoolUser && schoolFilterScope === 'my'
+                          ? `No book requests submitted yet for ${currentUser?.organization}`
+                          : 'No book requests found'}
                       </h3>
                       <p className="text-sm text-stone-500 max-w-md mx-auto">
-                        {schoolFilterName !== 'All Schools'
+                        {isSchoolUser && schoolFilterScope === 'my'
+                          ? 'Click "Submit New Book Request" above to post the first textbook request for your classrooms!'
+                          : schoolFilterName !== 'All Schools'
                           ? `No requests found for "${schoolFilterName}". Try selecting "All Schools" or submit a new book request.`
                           : 'No book requests have been submitted yet. Click "Submit New Book Request" above to get started!'}
                       </p>
@@ -1893,13 +1994,27 @@
 
                               <div className="pt-2 border-t border-stone-200 flex flex-col gap-2">
                                 {req.status === 'Shipped' && (
-                                  <button
-                                    onClick={() => setConfirmDeliveryReq(req)}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <Icon name="PackageCheck" className="w-4 h-4" />
-                                    <span>Confirm Books Received</span>
-                                  </button>
+                                  (() => {
+                                    const isOwnRequest = isSchoolUser && (req.schoolName || '').trim().toLowerCase() === userSchoolOrg.toLowerCase();
+                                    if (isOwnRequest) {
+                                      return (
+                                        <button
+                                          onClick={() => setConfirmDeliveryReq(req)}
+                                          className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                        >
+                                          <Icon name="PackageCheck" className="w-4 h-4" />
+                                          <span>Confirm Books Received</span>
+                                        </button>
+                                      );
+                                    } else {
+                                      return (
+                                        <div className="w-full py-2 px-3 rounded-xl bg-stone-100 text-stone-500 font-medium text-xs flex items-center justify-center gap-1.5 border border-stone-200 text-center">
+                                          <Icon name="Lock" className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                                          <span>Awaiting confirmation by {req.schoolName}</span>
+                                        </div>
+                                      );
+                                    }
+                                  })()
                                 )}
 
                                 {req.status === 'Delivered' && (
@@ -2278,13 +2393,30 @@
                                     <span>Donate / Pledge Books</span>
                                   </button>
                                 ) : req.status === 'Fulfilled' ? (
-                                  <button
-                                    onClick={() => handleMarkAsShipped(req.id)}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <Icon name="Truck" className="w-3.5 h-3.5" />
-                                    <span>Mark Dispatched</span>
-                                  </button>
+                                  (() => {
+                                    const userNgo = (currentUser?.organization || '').trim().toLowerCase();
+                                    const hasPledged = (req.pledges || []).some(
+                                      (p) => (p.ngoName || '').trim().toLowerCase() === userNgo
+                                    );
+                                    if (hasPledged) {
+                                      return (
+                                        <button
+                                          onClick={() => handleMarkAsShipped(req.id)}
+                                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                                        >
+                                          <Icon name="Truck" className="w-3.5 h-3.5" />
+                                          <span>Mark Dispatched</span>
+                                        </button>
+                                      );
+                                    } else {
+                                      return (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                                          <Icon name="Clock" className="w-3.5 h-3.5 text-amber-600" />
+                                          <span>100% Pledged (Awaiting Dispatch)</span>
+                                        </span>
+                                      );
+                                    }
+                                  })()
                                 ) : req.status === 'Shipped' ? (
                                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200">
                                     <Icon name="Truck" className="w-4 h-4" />
@@ -2465,18 +2597,28 @@
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
-                      Your NGO / Donor Organization Name *
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5 flex items-center justify-between">
+                      <span>Your NGO / Donor Organization Name *</span>
+                      {currentUser?.role === 'ngo' && (
+                        <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Verified NGO
+                        </span>
+                      )}
                     </label>
                     <input
                       type="text"
                       required
-                      value={pledgeData.ngoName}
+                      readOnly={currentUser?.role === 'ngo'}
+                      value={currentUser?.role === 'ngo' ? currentUser.organization : pledgeData.ngoName}
                       onChange={(e) =>
                         setPledgeData({ ...pledgeData, ngoName: e.target.value })
                       }
                       placeholder="e.g., Read Pakistan Foundation"
-                      className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                      className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none ${
+                        currentUser?.role === 'ngo'
+                          ? 'bg-stone-100 border-stone-300 text-stone-700 cursor-not-allowed font-medium'
+                          : 'border-stone-300 focus:border-emerald-600'
+                      }`}
                     />
                   </div>
 
