@@ -293,161 +293,7 @@
       </svg>
     );
 
-    const INITIAL_REQUESTS = [
-      {
-        id: 'req-101',
-        schoolName: 'Al-Noor Community Model School',
-        emisCode: '35210049',
-        location: 'Lahore, Punjab',
-        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
-        gradeLevel: 'Grades 6-8 (Middle)',
-        subject: 'Science',
-        bookTitle: 'General Science & Lab Experiments (PTB Illustrated Edition)',
-        description: 'Our middle school students are currently sharing 1 textbook among 4 students. Having individual books will allow them to study diagrams and complete homework assignments.',
-        quantityNeeded: 60,
-        quantityPledged: 40,
-        urgency: 'High',
-        contactPerson: 'Mrs. Tahira Perveen (Principal)',
-        contactPhone: '+92 300 4128901',
-        status: 'Partially Funded',
-        createdAt: '2 days ago',
-        pledges: [
-          {
-            id: 'p-1',
-            ngoName: 'Read Pakistan Foundation',
-            quantity: 40,
-            note: 'Dispatched via courier from our Lahore Gulberg warehouse. Expected arrival by Thursday.',
-            date: '1 day ago'
-          }
-        ]
-      },
-      {
-        id: 'req-102',
-        schoolName: 'Roshni Primary Government School',
-        emisCode: '21094012',
-        location: 'Multan, South Punjab',
-        deliveryAddress: 'Government Primary School Campus, Bosan Road, Multan',
-        gradeLevel: 'Grades 1-5 (Primary)',
-        subject: 'Urdu & Regional',
-        bookTitle: 'Nardban-e-Urdu & Illustrated Storybooks Set',
-        description: 'Looking for foundational Urdu phonics and early reading storybooks to establish our first classroom reading corner for 120 first-generation learners.',
-        quantityNeeded: 80,
-        quantityPledged: 0,
-        urgency: 'Critical',
-        contactPerson: 'Mr. Sajjad Hussain (Headmaster)',
-        contactPhone: '+92 321 6781122',
-        status: 'Pending',
-        createdAt: '5 hours ago',
-        pledges: []
-      },
-      {
-        id: 'req-103',
-        schoolName: 'Umeed Welfare Girls High School',
-        emisCode: '40108821',
-        location: 'Karachi, Sindh',
-        deliveryAddress: 'Umeed Welfare Campus, Street 9, Sector 11-A, Orangi Town, Karachi',
-        gradeLevel: 'Grades 9-10 (Matric)',
-        subject: 'Mathematics',
-        bookTitle: 'Secondary Stage Mathematics Class 9 & 10 + Geometry Kits',
-        description: 'Board examinations are approaching in 3 months and 45 of our 9th & 10th grade girls lack updated textbooks and past paper workbooks.',
-        quantityNeeded: 45,
-        quantityPledged: 45,
-        urgency: 'High',
-        contactPerson: 'Ms. Sadia Qureshi (Coordinator)',
-        contactPhone: '+92 333 2190445',
-        status: 'Fulfilled',
-        createdAt: '5 days ago',
-        pledges: [
-          {
-            id: 'p-2',
-            ngoName: 'Zindagi Trust Book Drive',
-            quantity: 25,
-            note: 'Delivering 25 new copies Monday morning.',
-            date: '3 days ago'
-          },
-          {
-            id: 'p-3',
-            ngoName: 'Citizens Education Alliance',
-            quantity: 20,
-            note: 'Remaining 20 copies + geometry sets packed and ready.',
-            date: '1 day ago'
-          }
-        ]
-      },
-      {
-        id: 'req-104',
-        schoolName: 'Kohsar Valley Rural Elementary',
-        emisCode: '15302910',
-        location: 'Swat, KP',
-        deliveryAddress: 'Kohsar Model School, Mingora Bazar Bypass, Swat',
-        gradeLevel: 'Grades 6-8 (Middle)',
-        subject: 'English Literature',
-        bookTitle: 'Oxford Progressive English Readers & Pocket Dictionaries',
-        description: 'Students have strong enthusiasm for learning English vocabulary, but our library lost most books during last season’s heavy rains.',
-        quantityNeeded: 50,
-        quantityPledged: 15,
-        urgency: 'Medium',
-        contactPerson: 'Mr. Kamran Khattak (Senior Teacher)',
-        contactPhone: '+92 345 9012388',
-        status: 'Partially Funded',
-        createdAt: '3 days ago',
-        pledges: [
-          {
-            id: 'p-4',
-            ngoName: 'Kitaab Dost Initiative',
-            quantity: 15,
-            note: 'Sending 15 Oxford English dictionaries and graded readers.',
-            date: '2 days ago'
-          }
-        ]
-      },
-      {
-        id: 'req-105',
-        schoolName: 'Chiltan Community School',
-        emisCode: '61092833',
-        location: 'Quetta, Balochistan',
-        deliveryAddress: 'Brewery Road near Western Bypass, Quetta',
-        gradeLevel: 'Grades 9-10 (Matric)',
-        subject: 'Computer Science',
-        bookTitle: 'Fundamentals of Computer Science & IT Basics',
-        description: 'We recently received 5 donated desktop computers, and now we need textbooks so students can study programming logic and hardware fundamentals.',
-        quantityNeeded: 35,
-        quantityPledged: 0,
-        urgency: 'Critical',
-        contactPerson: 'Mr. Mirwais Baloch (Administrator)',
-        contactPhone: '+92 312 8834901',
-        status: 'Pending',
-        createdAt: '1 day ago',
-        pledges: []
-      },
-      {
-        id: 'req-106',
-        schoolName: 'Al-Noor Community Model School',
-        emisCode: '35210049',
-        location: 'Lahore, Punjab',
-        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
-        gradeLevel: 'Grades 1-5 (Primary)',
-        subject: 'Mathematics',
-        bookTitle: 'Primary Countdown Mathematics Workbooks (Level 3 & 4)',
-        description: 'Activity-based math books with visual number puzzles for our Grade 3 and Grade 4 classrooms.',
-        quantityNeeded: 50,
-        quantityPledged: 50,
-        urgency: 'Medium',
-        contactPerson: 'Mrs. Tahira Perveen (Principal)',
-        contactPhone: '+92 300 4128901',
-        status: 'Shipped',
-        createdAt: '1 week ago',
-        pledges: [
-          {
-            id: 'p-5',
-            ngoName: 'Ilm-o-Amal Foundation',
-            quantity: 50,
-            note: 'Full batch shipped via TCS (Tracking #8891204).',
-            date: '4 days ago'
-          }
-        ]
-      }
-    ];
+    const INITIAL_REQUESTS = [];
 
     const SUBJECTS = [
       'All Subjects',
@@ -697,37 +543,6 @@
         }
       }, []);
 
-      const handleDemoLogin = (roleType) => {
-        if (roleType === 'school') {
-          const demoSchool = {
-            id: 'usr-school-demo',
-            email: 'tahira@alnoor.edu.pk',
-            role: 'school',
-            name: 'Mrs. Tahira Perveen (Principal)',
-            organization: 'Al-Noor Community Model School',
-            location: 'Lahore, Punjab',
-            phone: '+92 300 4128901'
-          };
-          setCurrentUser(demoSchool);
-          setActivePortal('school');
-          setShowAuthModal(false);
-          triggerToast('Welcome, Principal Tahira!', 'Signed in as Al-Noor Community Model School.');
-        } else {
-          const demoNgo = {
-            id: 'usr-ngo-demo',
-            email: 'contact@readpakistan.org',
-            role: 'ngo',
-            name: 'Tariq Mansoor (Program Director)',
-            organization: 'Read Pakistan Foundation',
-            location: 'Gulberg, Lahore',
-            phone: '+92 321 8899001'
-          };
-          setCurrentUser(demoNgo);
-          setActivePortal('ngo');
-          setShowAuthModal(false);
-          triggerToast('Welcome, Read Pakistan Foundation!', 'Signed in as Verified NGO Donor.');
-        }
-      };
 
       const handleAuthSubmit = async (e) => {
         e.preventDefault();
@@ -736,7 +551,7 @@
 
         try {
           if (!supabaseClient) {
-            const simulatedUser = {
+            const offlineUser = {
               id: `usr-${Date.now()}`,
               email: authEmail,
               role: authRole,
@@ -745,10 +560,10 @@
               location: authLocation,
               phone: authPhone
             };
-            setCurrentUser(simulatedUser);
+            setCurrentUser(offlineUser);
             setActivePortal(authRole);
             setShowAuthModal(false);
-            triggerToast('Signed In!', `Welcome, ${simulatedUser.organization}!`);
+            triggerToast('Signed In!', `Welcome, ${offlineUser.organization}!`);
             return;
           }
 
@@ -836,14 +651,6 @@
         }, 4500);
       };
 
-      // Reset to initial demo data
-      const handleResetData = () => {
-        if (window.confirm("Reset all requests back to initial sample demo data?")) {
-          setRequests(INITIAL_REQUESTS);
-          triggerToast("Demo Reset", "Restored sample book requests successfully.");
-        }
-      };
-
       // NGO Dashboard Filters
       const [searchQuery, setSearchQuery] = useState('');
       const [selectedSubject, setSelectedSubject] = useState('All Subjects');
@@ -855,24 +662,24 @@
       const [schoolFilterName, setSchoolFilterName] = useState('All Schools');
       const [showNewRequestForm, setShowNewRequestForm] = useState(false);
       const [newRequest, setNewRequest] = useState({
-        schoolName: 'Al-Noor Community Model School',
-        emisCode: '35210049',
-        location: 'Lahore, Punjab',
-        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
+        schoolName: '',
+        emisCode: '',
+        location: '',
+        deliveryAddress: '',
         gradeLevel: 'Grades 6-8 (Middle)',
         subject: 'Science',
         bookTitle: '',
         description: '',
-        quantityNeeded: 40,
+        quantityNeeded: 30,
         urgency: 'High',
-        contactPerson: 'Mrs. Tahira Perveen (Principal)',
-        contactPhone: '+92 300 4128901'
+        contactPerson: '',
+        contactPhone: ''
       });
 
       // NGO Donate Modal state
       const [activeDonateReq, setActiveDonateReq] = useState(null);
       const [pledgeData, setPledgeData] = useState({
-        ngoName: 'Read Pakistan Foundation',
+        ngoName: '',
         quantity: 10,
         note: '',
         markShippedImmediately: false
@@ -1012,7 +819,7 @@
           setAuthRole('school');
           setAuthMode('signin');
           setShowAuthModal(true);
-          triggerToast('Sign-In Required', 'Please sign in or use 1-click Demo School login to post requests.');
+          triggerToast('Sign-In Required', 'Please sign in or register your school to submit book requests.');
           return;
         }
         if (!showNewRequestForm && currentUser?.role === 'school') {
@@ -1032,15 +839,15 @@
           setAuthRole('ngo');
           setAuthMode('signin');
           setShowAuthModal(true);
-          triggerToast('Sign-In Required', 'Please sign in or use 1-click Demo NGO login to pledge books.');
+          triggerToast('Sign-In Required', 'Please sign in or register as an NGO / donor to pledge books.');
           return;
         }
         const remaining = Math.max(1, req.quantityNeeded - req.quantityPledged);
         setActiveDonateReq(req);
         setPledgeData({
-          ngoName: currentUser.role === 'ngo' ? currentUser.organization : 'Read Pakistan Foundation',
+          ngoName: currentUser.role === 'ngo' ? currentUser.organization : '',
           quantity: remaining,
-          note: 'We have these books in stock and will dispatch them within 48 hours.',
+          note: 'We have these books in stock and will dispatch them promptly.',
           markShippedImmediately: false
         });
       };
@@ -1260,15 +1067,6 @@
                     <span>3. Impact Overview</span>
                   </button>
                 </div>
-
-                <button
-                  onClick={handleResetData}
-                  title="Reset sample data"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-stone-200 border border-stone-700 text-[11px] cursor-pointer"
-                >
-                  <Icon name="RotateCcw" className="w-3 h-3" />
-                  <span>Reset Demo</span>
-                </button>
               </div>
             </div>
           </div>
@@ -1773,7 +1571,7 @@
                                         onClick={() => {
                                           setAuthMode('signin');
                                           setShowAuthModal(true);
-                                          triggerToast('Sign-In Required', 'Phone numbers are protected against automated scraping. Sign in or use demo login to view.');
+                                          triggerToast('Sign-In Required', 'Phone numbers are protected against scraping. Sign in or register to view.');
                                         }}
                                         className="text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 cursor-pointer font-medium text-[11px] inline-flex items-center gap-1"
                                         title="Click to sign in and view phone"
@@ -1892,7 +1690,7 @@
                                     className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                                   >
                                     <Icon name="HeartHandshake" className="w-4 h-4" />
-                                    <span>Simulate NGO Pledge ({req.quantityNeeded - req.quantityPledged} left)</span>
+                                    <span>Pledge Books ({req.quantityNeeded - req.quantityPledged} left)</span>
                                   </button>
                                 ) : null}
 
@@ -2882,37 +2680,6 @@
                   </button>
                 </div>
 
-                {/* 1-Click Quick Demo Sign-In Box */}
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2.5">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-                    <Icon name="Sparkles" className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Instant 1-Click Demo Profiles</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleDemoLogin('school')}
-                      className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 text-xs font-semibold text-left transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <span className="text-base">🏫</span>
-                      <div className="truncate">
-                        <div>Al-Noor School</div>
-                        <div className="text-[10px] text-amber-800 font-normal">Principal Tahira</div>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDemoLogin('ngo')}
-                      className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-200 text-xs font-semibold text-left transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <span className="text-base">🤝</span>
-                      <div className="truncate">
-                        <div>Read Pakistan</div>
-                        <div className="text-[10px] text-emerald-800 font-normal">Verified NGO</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
 
                 {/* Mode Selector Tabs (Sign In vs Register) */}
                 <div className="flex bg-stone-100 p-1 rounded-xl text-xs font-semibold">
@@ -3102,7 +2869,7 @@
                 <span>BookBridge — Connecting Classrooms & Education NGOs</span>
               </div>
               <div>
-                Interactive Dual-Portal Demo with Local Browser Persistence
+                Kitaab Dost Network — Bridging the Textbook Gap in Under-Resourced Pakistani Schools
               </div>
             </div>
           </footer>
