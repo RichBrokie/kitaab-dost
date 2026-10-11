@@ -373,8 +373,18 @@
       : null;
 
     function App() {
-      // Active Role View: 'school' | 'ngo' | 'impact'
-      const [activePortal, setActivePortal] = useState('school');
+      // Active Portal View: 'gateway' | 'school' | 'ngo' | 'impact'
+      const [activePortal, setActivePortal] = useState(() => {
+        try {
+          const savedUser = localStorage.getItem('bookbridge_user');
+          if (savedUser) {
+            const u = JSON.parse(savedUser);
+            if (u?.role === 'school') return 'school';
+            if (u?.role === 'ngo') return 'ngo';
+          }
+        } catch (e) {}
+        return 'gateway';
+      });
       const [dbConnected, setDbConnected] = useState(false);
       const [isSyncing, setIsSyncing] = useState(false);
 
@@ -634,8 +644,52 @@
           } catch (e) {}
         }
         setCurrentUser(null);
+        setActivePortal('gateway');
         triggerToast('Signed Out', 'You have been safely signed out.');
       };
+
+      const handleOpenSchoolPortal = () => {
+        if (currentUser) {
+          if (currentUser.role === 'school') {
+            setActivePortal('school');
+          } else {
+            triggerToast('Access Restricted', 'You are currently signed in as an NGO. Sign out first to access the School Portal.');
+          }
+        } else {
+          setAuthRole('school');
+          setAuthMode('signin');
+          setShowAuthModal(true);
+        }
+      };
+
+      const handleOpenNgoPortal = () => {
+        if (currentUser) {
+          if (currentUser.role === 'ngo') {
+            setActivePortal('ngo');
+          } else {
+            triggerToast('Access Restricted', 'You are currently signed in as a School. Sign out first to access the NGO Donor Portal.');
+          }
+        } else {
+          setAuthRole('ngo');
+          setAuthMode('signin');
+          setShowAuthModal(true);
+        }
+      };
+
+      // Strict Role-Based Access Control (RBAC) Guard
+      useEffect(() => {
+        if (currentUser) {
+          if (currentUser.role === 'school' && activePortal === 'ngo') {
+            setActivePortal('school');
+            triggerToast('Access Restricted', 'Your account is registered as a School. NGO Donor Portal is restricted.');
+          } else if (currentUser.role === 'ngo' && activePortal === 'school') {
+            setActivePortal('ngo');
+            triggerToast('Access Restricted', 'Your account is registered as an NGO. School Request Portal is restricted.');
+          } else if (activePortal === 'gateway') {
+            setActivePortal(currentUser.role);
+          }
+        }
+      }, [currentUser, activePortal]);
 
       // Toast Notification state with timeout ref to prevent race conditions
       const [toast, setToast] = useState(null);
@@ -1018,55 +1072,117 @@
             </div>
           )}
 
-          {/* Top Interactive Role Switcher Bar */}
+          {/* Top Role-Separated Portal Navigation Bar */}
           <div className="bg-stone-900 text-stone-200 text-xs py-2.5 px-4 border-b border-stone-800 sticky top-0 z-40">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   <span className={`w-1.5 h-1.5 rounded-full ${dbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                  {dbConnected ? 'Supabase Cloud Synced' : isSyncing ? 'Connecting to Cloud...' : 'Cloud Database'}
+                  Live Nationwide Network
                 </span>
                 <span className="text-stone-400 hidden lg:inline">
-                  Live database connected — requests and pledges sync instantly across all devices!
+                  Verified Textbook Requests & Direct NGO Delivery Network
                 </span>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
-                  <button
-                    onClick={() => setActivePortal('school')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                      activePortal === 'school'
-                        ? 'bg-amber-500 text-stone-950 font-semibold shadow-sm'
-                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                    }`}
-                  >
-                    <Icon name="School" className="w-3.5 h-3.5" />
-                    <span>1. School Portal</span>
-                  </button>
-                  <button
-                    onClick={() => setActivePortal('ngo')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                      activePortal === 'ngo'
-                        ? 'bg-emerald-500 text-stone-950 font-semibold shadow-sm'
-                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                    }`}
-                  >
-                    <Icon name="HeartHandshake" className="w-3.5 h-3.5" />
-                    <span>2. NGO Donor Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => setActivePortal('impact')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                      activePortal === 'impact'
-                        ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
-                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                    }`}
-                  >
-                    <Icon name="BarChart3" className="w-3.5 h-3.5" />
-                    <span>3. Impact Overview</span>
-                  </button>
-                </div>
+                {/* Logged in as School: ONLY School Portal + Impact */}
+                {currentUser?.role === 'school' && (
+                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
+                    <button
+                      onClick={() => setActivePortal('school')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'school'
+                          ? 'bg-amber-500 text-stone-950 font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="School" className="w-3.5 h-3.5" />
+                      <span>School Portal</span>
+                    </button>
+                    <button
+                      onClick={() => setActivePortal('impact')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'impact'
+                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
+                      <span>Impact Overview</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Logged in as NGO: ONLY NGO Donor Dashboard + Impact */}
+                {currentUser?.role === 'ngo' && (
+                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
+                    <button
+                      onClick={() => setActivePortal('ngo')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'ngo'
+                          ? 'bg-emerald-500 text-stone-950 font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="HeartHandshake" className="w-3.5 h-3.5" />
+                      <span>NGO Donor Dashboard</span>
+                    </button>
+                    <button
+                      onClick={() => setActivePortal('impact')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'impact'
+                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
+                      <span>Impact Overview</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Guest / Public: Separate Access Buttons */}
+                {!currentUser && (
+                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
+                    <button
+                      onClick={() => setActivePortal('gateway')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'gateway'
+                          ? 'bg-stone-700 text-white font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="Compass" className="w-3.5 h-3.5" />
+                      <span>Public Directory</span>
+                    </button>
+                    <button
+                      onClick={handleOpenSchoolPortal}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-amber-300 hover:text-white hover:bg-stone-700/60 transition-all cursor-pointer"
+                    >
+                      <Icon name="School" className="w-3.5 h-3.5 text-amber-400" />
+                      <span>School Portal</span>
+                    </button>
+                    <button
+                      onClick={handleOpenNgoPortal}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-emerald-300 hover:text-white hover:bg-stone-700/60 transition-all cursor-pointer"
+                    >
+                      <Icon name="HeartHandshake" className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>NGO Portal</span>
+                    </button>
+                    <button
+                      onClick={() => setActivePortal('impact')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        activePortal === 'impact'
+                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
+                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                      }`}
+                    >
+                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
+                      <span>Impact</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1157,16 +1273,24 @@
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setAuthMode('signin');
-                      setShowAuthModal(true);
-                    }}
-                    className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
-                  >
-                    <Icon name="LogIn" className="w-4 h-4 text-amber-400" />
-                    <span>Sign In / Register</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleOpenSchoolPortal}
+                      className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 px-3.5 py-2.5 rounded-2xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      title="School Administrator & Teacher Portal"
+                    >
+                      <Icon name="School" className="w-4 h-4" />
+                      <span>School Login</span>
+                    </button>
+                    <button
+                      onClick={handleOpenNgoPortal}
+                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-2xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      title="Education NGO & Donor Dashboard"
+                    >
+                      <Icon name="HeartHandshake" className="w-4 h-4" />
+                      <span>NGO Login</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1174,6 +1298,214 @@
 
           {/* Main Content Container */}
           <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* ==========================================
+                VIEW 0: PUBLIC GATEWAY / PORTAL SELECTOR
+               ========================================== */}
+            {activePortal === 'gateway' && (
+              <div className="space-y-10">
+                {/* Gateway Welcome Hero */}
+                <div className="text-center max-w-3xl mx-auto space-y-3 pt-2 pb-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                    <Icon name="BookOpen" className="w-3.5 h-3.5" />
+                    <span>Kitaab Dost Network — Pakistan Textbook Bridge</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
+                    Select Your Access Portal
+                  </h2>
+                  <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
+                    A dedicated platform connecting under-resourced public & community schools directly with verified education NGOs, trusts, and book donors.
+                  </p>
+                </div>
+
+                {/* Two Distinct Portal Entrance Doors */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                  {/* Door 1: School Portal */}
+                  <div className="bg-white rounded-3xl p-7 sm:p-8 border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+                    <div className="space-y-4">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                        <Icon name="School" className="w-7 h-7 text-amber-700" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                          For Headmasters & Teachers
+                        </span>
+                        <h3 className="text-2xl font-bold text-stone-900 mt-2.5">
+                          School Administrator Portal
+                        </h3>
+                        <p className="text-stone-600 text-sm mt-2 leading-relaxed">
+                          Request curriculum textbooks, Urdu storybooks, and classroom reading sets for your students. Track incoming courier shipments directly to your school gate.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row gap-2.5">
+                      <button
+                        onClick={handleOpenSchoolPortal}
+                        className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-sm text-center transition-all cursor-pointer shadow-sm"
+                      >
+                        Sign In as School
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAuthRole('school');
+                          setAuthMode('signup');
+                          setShowAuthModal(true);
+                        }}
+                        className="py-3 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold text-sm border border-amber-300 transition-all cursor-pointer text-center"
+                      >
+                        Register School
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Door 2: NGO Portal */}
+                  <div className="bg-white rounded-3xl p-7 sm:p-8 border-2 border-emerald-300 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+                    <div className="space-y-4">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                        <Icon name="HeartHandshake" className="w-7 h-7 text-emerald-700" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                          For Charities & Book Donors
+                        </span>
+                        <h3 className="text-2xl font-bold text-stone-900 mt-2.5">
+                          NGO & Donor Dashboard
+                        </h3>
+                        <p className="text-stone-600 text-sm mt-2 leading-relaxed">
+                          Browse verified book requests from under-resourced schools across Pakistan. Pledge book batches, print TCS packing slips, and confirm school delivery.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row gap-2.5">
+                      <button
+                        onClick={handleOpenNgoPortal}
+                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm text-center transition-all cursor-pointer shadow-sm"
+                      >
+                        Sign In as NGO
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAuthRole('ngo');
+                          setAuthMode('signup');
+                          setShowAuthModal(true);
+                        }}
+                        className="py-3 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-semibold text-sm border border-emerald-300 transition-all cursor-pointer text-center"
+                      >
+                        Register NGO
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Public Live Feed Header */}
+                <div className="pt-6 border-t border-stone-200 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-stone-900">
+                        Public Directory: Verified Classroom Textbook Needs
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Live requests from Pakistani schools. Sign in as an NGO to pledge books or print courier slips.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-stone-500">Filter by School:</span>
+                      <select
+                        value={schoolFilterName}
+                        onChange={(e) => setSchoolFilterName(e.target.value)}
+                        className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm font-medium text-stone-800 focus:outline-none focus:border-amber-500"
+                      >
+                        {schoolNamesList.map((sn) => (
+                          <option key={sn} value={sn}>{sn}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredSchoolRequests.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
+                      <Icon name="BookOpen" className="w-12 h-12 text-stone-300 mx-auto" />
+                      <h3 className="text-lg font-bold text-stone-800">No book requests found</h3>
+                      <p className="text-sm text-stone-500 max-w-md mx-auto">
+                        No book requests have been submitted yet. Register your school to submit the first request!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {filteredSchoolRequests.map((req) => {
+                        const pct = Math.min(100, Math.round((req.quantityPledged / req.quantityNeeded) * 100));
+                        return (
+                          <div key={req.id} className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-md transition-all flex flex-col lg:flex-row justify-between gap-6">
+                            <div className="space-y-3 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                                  req.urgency === 'Critical'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                    : req.urgency === 'High'
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                    : 'bg-stone-100 text-stone-700 border border-stone-200'
+                                }`}>
+                                  {req.urgency} Urgency
+                                </span>
+                                <span className="text-[11px] font-semibold bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full border border-stone-200">
+                                  {req.subject}
+                                </span>
+                                <span className="text-[11px] font-medium text-stone-500">
+                                  {req.gradeLevel}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-bold text-stone-900">{req.bookTitle}</h4>
+                              <div className="text-xs text-stone-600 flex items-center gap-3 flex-wrap">
+                                <span className="font-semibold text-stone-900">{req.schoolName}</span>
+                                <span>•</span>
+                                <span>{req.location}</span>
+                                {req.emisCode && (
+                                  <span className="text-[11px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                    EMIS #{req.emisCode} (Verified)
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-stone-600">{req.description}</p>
+                            </div>
+                            <div className="lg:w-64 bg-stone-50 rounded-2xl p-4 border border-stone-200 flex flex-col justify-between space-y-3 shrink-0">
+                              <div>
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                  <span className="font-semibold text-stone-500">Fulfillment</span>
+                                  <span className="font-bold text-emerald-700">{pct}%</span>
+                                </div>
+                                <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${pct >= 100 ? 'bg-emerald-600' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                <div className="text-[11px] text-stone-600 mt-1">
+                                  <strong>{req.quantityPledged}</strong> of <strong>{req.quantityNeeded}</strong> books pledged
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <button
+                                  onClick={handleOpenNgoPortal}
+                                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                >
+                                  <Icon name="HeartHandshake" className="w-4 h-4" />
+                                  <span>Pledge Books ({req.quantityNeeded - req.quantityPledged} left)</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveDispatchSlipReq(req)}
+                                  className="w-full py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center justify-center gap-1.5 border border-stone-200 transition-all cursor-pointer"
+                                >
+                                  <Icon name="Printer" className="w-3.5 h-3.5 text-stone-600" />
+                                  <span>Courier Slip Preview</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ==========================================
                 VIEW 1: SCHOOL PORTAL
                ========================================== */}
@@ -1203,13 +1535,6 @@
                       <span>
                         {showNewRequestForm ? 'Close Request Form' : 'Submit New Book Request'}
                       </span>
-                    </button>
-                    <button
-                      onClick={() => setActivePortal('ngo')}
-                      className="inline-flex items-center gap-1.5 bg-white hover:bg-stone-50 text-stone-700 font-medium px-4 py-3 rounded-xl border border-stone-300 transition-all text-sm cursor-pointer"
-                    >
-                      <span>Switch to NGO Donor View</span>
-                      <Icon name="ArrowUpRight" className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -1686,11 +2011,11 @@
 
                                 {req.quantityPledged < req.quantityNeeded ? (
                                   <button
-                                    onClick={() => openDonateModal(req)}
+                                    onClick={() => currentUser?.role === 'school' ? triggerToast('Awaiting NGO Pledges', 'This request is published on the national feed for partner NGOs to fulfill.') : openDonateModal(req)}
                                     className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                                   >
                                     <Icon name="HeartHandshake" className="w-4 h-4" />
-                                    <span>Pledge Books ({req.quantityNeeded - req.quantityPledged} left)</span>
+                                    <span>{currentUser?.role === 'school' ? `Awaiting NGO Pledges (${req.quantityNeeded - req.quantityPledged} left)` : `Pledge Books (${req.quantityNeeded - req.quantityPledged} left)`}</span>
                                   </button>
                                 ) : null}
 
@@ -1756,15 +2081,6 @@
                         In {requests.filter((r) => r.quantityPledged < r.quantityNeeded).length} active school requests
                       </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        setActivePortal('school');
-                        setShowNewRequestForm(true);
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-semibold text-xs transition-all cursor-pointer shrink-0"
-                    >
-                      + Add School Request
-                    </button>
                   </div>
                 </div>
 
@@ -2659,17 +2975,23 @@
                 {/* Modal Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
                   <div>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                      <Icon name="Lock" className="w-3.5 h-3.5" />
-                      <span>Kitaab Dost User Portal</span>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      authRole === 'school'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    }`}>
+                      <Icon name={authRole === 'school' ? 'School' : 'HeartHandshake'} className="w-3.5 h-3.5" />
+                      <span>{authRole === 'school' ? 'School Administrator Portal' : 'NGO & Donor Dashboard'}</span>
                     </div>
                     <h3 className="text-xl font-bold text-stone-900 mt-2">
-                      {authMode === 'signin' ? 'Sign In to Your Account' : 'Register New Account'}
+                      {authRole === 'school'
+                        ? (authMode === 'signin' ? 'Sign In — School Portal' : 'Register Your School')
+                        : (authMode === 'signin' ? 'Sign In — NGO Portal' : 'Register Your Organization')}
                     </h3>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      {authMode === 'signin' 
-                        ? 'Access your school requests or manage NGO book pledges'
-                        : 'Connect your school or charity to the national book network'}
+                      {authRole === 'school'
+                        ? 'For headmasters and teachers to post and manage textbook requirements'
+                        : 'For education charities and donors to pledge and track book deliveries'}
                     </p>
                   </div>
                   <button
@@ -2716,40 +3038,38 @@
                 )}
 
                 <form onSubmit={handleAuthSubmit} className="space-y-3.5">
-                  {/* Role Selector (visible during signup) */}
-                  {authMode === 'signup' && (
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600">
-                        I represent: *
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAuthRole('school')}
-                          className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            authRole === 'school'
-                              ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-2 ring-amber-200'
-                              : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
-                          }`}
-                        >
-                          <Icon name="School" className="w-4 h-4 text-amber-600" />
-                          <span>School / Teacher</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAuthRole('ngo')}
-                          className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            authRole === 'ngo'
-                              ? 'border-emerald-500 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-200'
-                              : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
-                          }`}
-                        >
-                          <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600" />
-                          <span>NGO / Donor</span>
-                        </button>
-                      </div>
+                  {/* Portal Role Selector */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600">
+                      Access Portal: *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAuthRole('school')}
+                        className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          authRole === 'school'
+                            ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-2 ring-amber-200'
+                            : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                        }`}
+                      >
+                        <Icon name="School" className="w-4 h-4 text-amber-600" />
+                        <span>School Portal</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthRole('ngo')}
+                        className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          authRole === 'ngo'
+                            ? 'border-emerald-500 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-200'
+                            : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                        }`}
+                      >
+                        <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600" />
+                        <span>NGO Portal</span>
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   {authMode === 'signup' && (
                     <>
@@ -2851,7 +3171,11 @@
                       ) : (
                         <>
                           <Icon name={authMode === 'signin' ? 'LogIn' : 'Check'} className="w-4 h-4 text-amber-400" />
-                          <span>{authMode === 'signin' ? 'Sign In to Kitaab Dost' : 'Complete Registration'}</span>
+                          <span>
+                            {authMode === 'signin'
+                              ? `Sign In to ${authRole === 'school' ? 'School Portal' : 'NGO Portal'}`
+                              : `Register ${authRole === 'school' ? 'School Account' : 'NGO Account'}`}
+                          </span>
                         </>
                       )}
                     </button>
