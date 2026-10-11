@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BookBridge | Kitaab Dost Network — School & NGO Book Donation Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18 & ReactDOM UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel Standalone to transpile JSX in-browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .toast-animate {
+      animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .toast-animate {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect, useRef } = React;
+
+    // --- Inlined SVG Icon Paths (created once, shared by all Icon instances) ---
+    const ICON_PATHS = {
+      BookOpen: (
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      ),
+      School: (
+        <>
+          <path d="m4 6 8-4 8 4" />
+          <path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2" />
+          <path d="M14 22v-4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4" />
+          <path d="M18 5v17" />
+          <path d="M6 5v17" />
+          <circle cx="12" cy="9" r="2" />
+        </>
+      ),
+      HeartHandshake: (
+        <>
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+          <path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66" />
+          <path d="m18 15-2-2" />
+          <path d="m15 18-2-2" />
+        </>
+      ),
+      BarChart3: (
+        <>
+          <path d="M3 3v18h18" />
+          <path d="M18 17V9" />
+          <path d="M13 17V5" />
+          <path d="M8 17v-3" />
+        </>
+      ),
+      PlusCircle: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 12h8" />
+          <path d="M12 8v8" />
+        </>
+      ),
+      Search: (
+        <>
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </>
+      ),
+      Filter: (
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+      ),
+      MapPin: (
+        <>
+          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+          <circle cx="12" cy="10" r="3" />
+        </>
+      ),
+      Clock: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </>
+      ),
+      CheckCircle2: (
+        <>
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </>
+      ),
+      Truck: (
+        <>
+          <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+          <path d="M15 18H9" />
+          <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14v10Z" />
+          <circle cx="17" cy="18" r="2" />
+          <circle cx="7" cy="18" r="2" />
+        </>
+      ),
+      AlertCircle: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </>
+      ),
+      BookMarked: (
+        <>
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+          <polyline points="10 2 10 10 13 7 16 10 16 2" />
+        </>
+      ),
+      Sparkles: (
+        <>
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+          <path d="M5 3v4" />
+          <path d="M19 17v4" />
+          <path d="M3 5h4" />
+          <path d="M17 19h4" />
+        </>
+      ),
+      Send: (
+        <>
+          <path d="m22 2-7 20-4-9-9-4Z" />
+          <path d="M22 2 11 13" />
+        </>
+      ),
+      X: (
+        <>
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </>
+      ),
+      Phone: (
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+      ),
+      GraduationCap: (
+        <>
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M22 10v6" />
+          <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+        </>
+      ),
+      ArrowUpRight: (
+        <>
+          <path d="M7 7h10v10" />
+          <path d="M7 17 17 7" />
+        </>
+      ),
+      Check: (
+        <path d="M20 6 9 17l-5-5" />
+      ),
+      PackageCheck: (
+        <>
+          <path d="m16 16 2 2 4-4" />
+          <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" />
+          <path d="m7.5 4.27 9 5.15" />
+          <polyline points="3.29 7 12 12 20.71 7" />
+          <line x1="12" x2="12" y1="22" y2="12" />
+        </>
+      ),
+      RotateCcw: (
+        <>
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </>
+      )
+    };
+
+    const Icon = ({ name, className = "w-4 h-4", ...props }) => (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+        {...props}
+      >
+        {ICON_PATHS[name] || null}
+      </svg>
+    );
+
+    const INITIAL_REQUESTS = [
+      {
+        id: 'req-101',
+        schoolName: 'Al-Noor Community Model School',
+        location: 'Lahore, Punjab',
+        gradeLevel: 'Grades 6-8 (Middle)',
+        subject: 'Science',
+        bookTitle: 'General Science & Lab Experiments (PTB Illustrated Edition)',
+        description: 'Our middle school students are currently sharing 1 textbook among 4 students. Having individual books will allow them to study diagrams and complete homework assignments.',
+        quantityNeeded: 60,
+        quantityPledged: 40,
+        urgency: 'High',
+        contactPerson: 'Mrs. Tahira Perveen (Principal)',
+        contactPhone: '+92 300 4128901',
+        status: 'Partially Funded',
+        createdAt: '2 days ago',
+        pledges: [
+          {
+            id: 'p-1',
+            ngoName: 'Read Pakistan Foundation',
+            quantity: 40,
+            note: 'Dispatched via courier from our Lahore Gulberg warehouse. Expected arrival by Thursday.',
+            date: '1 day ago'
+          }
+        ]
+      },
+      {
+        id: 'req-102',
+        schoolName: 'Roshni Primary Government School',
+        location: 'Multan, South Punjab',
+        gradeLevel: 'Grades 1-5 (Primary)',
+        subject: 'Urdu & Regional',
+        bookTitle: 'Nardban-e-Urdu & Illustrated Storybooks Set',
+        description: 'Looking for foundational Urdu phonics and early reading storybooks to establish our first classroom reading corner for 120 first-generation learners.',
+        quantityNeeded: 80,
+        quantityPledged: 0,
+        urgency: 'Critical',
+        contactPerson: 'Mr. Sajjad Hussain (Headmaster)',
+        contactPhone: '+92 321 6781122',
+        status: 'Pending',
+        createdAt: '5 hours ago',
+        pledges: []
+      },
+      {
+        id: 'req-103',
+        schoolName: 'Umeed Welfare Girls High School',
+        location: 'Karachi, Sindh',
+        gradeLevel: 'Grades 9-10 (Matric)',
+        subject: 'Mathematics',
+        bookTitle: 'Secondary Stage Mathematics Class 9 & 10 + Geometry Kits',
+        description: 'Board examinations are approaching in 3 months and 45 of our 9th & 10th grade girls lack updated textbooks and past paper workbooks.',
+        quantityNeeded: 45,
+        quantityPledged: 45,
+        urgency: 'High',
+        contactPerson: 'Ms. Sadia Qureshi (Coordinator)',
+        contactPhone: '+92 333 2190445',
+        status: 'Fulfilled',
+        createdAt: '5 days ago',
+        pledges: [
+          {
+            id: 'p-2',
+            ngoName: 'Zindagi Trust Book Drive',
+            quantity: 25,
+            note: 'Delivering 25 new copies Monday morning.',
+            date: '3 days ago'
+          },
+          {
+            id: 'p-3',
+            ngoName: 'Citizens Education Alliance',
+            quantity: 20,
+            note: 'Remaining 20 copies + geometry sets packed and ready.',
+            date: '1 day ago'
+          }
+        ]
+      },
+      {
+        id: 'req-104',
+        schoolName: 'Kohsar Valley Rural Elementary',
+        location: 'Swat, KP',
+        gradeLevel: 'Grades 6-8 (Middle)',
+        subject: 'English Literature',
+        bookTitle: 'Oxford Progressive English Readers & Pocket Dictionaries',
+        description: 'Students have strong enthusiasm for learning English vocabulary, but our library lost most books during last season’s heavy rains.',
+        quantityNeeded: 50,
+        quantityPledged: 15,
+        urgency: 'Medium',
+        contactPerson: 'Mr. Kamran Khattak (Senior Teacher)',
+        contactPhone: '+92 345 9012388',
+        status: 'Partially Funded',
+        createdAt: '3 days ago',
+        pledges: [
+          {
+            id: 'p-4',
+            ngoName: 'Kitaab Dost Initiative',
+            quantity: 15,
+            note: 'Sending 15 Oxford English dictionaries and graded readers.',
+            date: '2 days ago'
+          }
+        ]
+      },
+      {
+        id: 'req-105',
+        schoolName: 'Chiltan Community School',
+        location: 'Quetta, Balochistan',
+        gradeLevel: 'Grades 9-10 (Matric)',
+        subject: 'Computer Science',
+        bookTitle: 'Fundamentals of Computer Science & IT Basics',
+        description: 'We recently received 5 donated desktop computers, and now we need textbooks so students can study programming logic and hardware fundamentals.',
+        quantityNeeded: 35,
+        quantityPledged: 0,
+        urgency: 'Critical',
+        contactPerson: 'Mr. Mirwais Baloch (Administrator)',
+        contactPhone: '+92 312 8834901',
+        status: 'Pending',
+        createdAt: '1 day ago',
+        pledges: []
+      },
+      {
+        id: 'req-106',
+        schoolName: 'Al-Noor Community Model School',
+        location: 'Lahore, Punjab',
+        gradeLevel: 'Grades 1-5 (Primary)',
+        subject: 'Mathematics',
+        bookTitle: 'Primary Countdown Mathematics Workbooks (Level 3 & 4)',
+        description: 'Activity-based math books with visual number puzzles for our Grade 3 and Grade 4 classrooms.',
+        quantityNeeded: 50,
+        quantityPledged: 50,
+        urgency: 'Medium',
+        contactPerson: 'Mrs. Tahira Perveen (Principal)',
+        contactPhone: '+92 300 4128901',
+        status: 'Shipped',
+        createdAt: '1 week ago',
+        pledges: [
+          {
+            id: 'p-5',
+            ngoName: 'Ilm-o-Amal Foundation',
+            quantity: 50,
+            note: 'Full batch shipped via TCS (Tracking #8891204).',
+            date: '4 days ago'
+          }
+        ]
+      }
+    ];
+
+    const SUBJECTS = [
+      'All Subjects',
+      'Science',
+      'Mathematics',
+      'English Literature',
+      'Urdu & Regional',
+      'Computer Science',
+      'Social Studies'
+    ];
+
+    const GRADES = [
+      'All Grades',
+      'Grades 1-5 (Primary)',
+      'Grades 6-8 (Middle)',
+      'Grades 9-10 (Matric)',
+      'Grades 11-12 (Intermediate)'
+    ];
+
+    const URGENCIES = ['All Urgencies', 'Critical', 'High', 'Medium'];
+
+    function getUrgencyBadge(urgency) {
+      switch (urgency) {
+        case 'Critical':
+          return {
+            bg: 'bg-rose-50 text-rose-800 border-rose-200',
+            dot: 'bg-rose-500'
+          };
+        case 'High':
+          return {
+            bg: 'bg-amber-50 text-amber-800 border-amber-200',
+            dot: 'bg-amber-500'
+          };
+        default:
+          return {
+            bg: 'bg-sky-50 text-sky-800 border-sky-200',
+            dot: 'bg-sky-500'
+          };
+      }
+    }
+
+    function getStatusBadge(status) {
+      switch (status) {
+        case 'Delivered':
+          return {
+            bg: 'bg-teal-50 text-teal-800 border-teal-200',
+            icon: 'PackageCheck'
+          };
+        case 'Fulfilled':
+          return {
+            bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+            icon: 'CheckCircle2'
+          };
+        case 'Shipped':
+          return {
+            bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+            icon: 'Truck'
+          };
+        case 'Partially Funded':
+          return {
+            bg: 'bg-amber-50 text-amber-800 border-amber-200',
+            icon: 'Clock'
+          };
+        default:
+          return {
+            bg: 'bg-stone-100 text-stone-700 border-stone-200',
+            icon: 'AlertCircle'
+          };
+      }
+    }
+
+    function App() {
+      // Active Role View: 'school' | 'ngo' | 'impact'
+      const [activePortal, setActivePortal] = useState('school');
+
+      // Requests with LocalStorage persistence
+      const [requests, setRequests] = useState(() => {
+        try {
+          const saved = localStorage.getItem('bookbridge_requests');
+          return saved ? JSON.parse(saved) : INITIAL_REQUESTS;
+        } catch (e) {
+          return INITIAL_REQUESTS;
+        }
+      });
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('bookbridge_requests', JSON.stringify(requests));
+        } catch (e) {
+          console.error('Failed to save to localStorage', e);
+        }
+      }, [requests]);
+
+      // Toast Notification state with timeout ref to prevent race conditions
+      const [toast, setToast] = useState(null);
+      const toastTimeoutRef = useRef(null);
+
+      const triggerToast = (title, message) => {
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        setToast({ title, message });
+        toastTimeoutRef.current = setTimeout(() => {
+          setToast(null);
+        }, 4500);
+      };
+
+      // Reset to initial demo data
+      const handleResetData = () => {
+        if (window.confirm("Reset all requests back to initial sample demo data?")) {
+          setRequests(INITIAL_REQUESTS);
+          triggerToast("Demo Reset", "Restored sample book requests successfully.");
+        }
+      };
+
+      // NGO Dashboard Filters
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedSubject, setSelectedSubject] = useState('All Subjects');
+      const [selectedGrade, setSelectedGrade] = useState('All Grades');
+      const [selectedUrgency, setSelectedUrgency] = useState('All Urgencies');
+      const [statusFilter, setStatusFilter] = useState('Needs Books'); // 'All' | 'Needs Books' | 'Completed'
+
+      // School Portal Filter & Form state
+      const [schoolFilterName, setSchoolFilterName] = useState('All Schools');
+      const [showNewRequestForm, setShowNewRequestForm] = useState(false);
+      const [newRequest, setNewRequest] = useState({
+        schoolName: 'Al-Noor Community Model School',
+        location: 'Lahore, Punjab',
+        gradeLevel: 'Grades 6-8 (Middle)',
+        subject: 'Science',
+        bookTitle: '',
+        description: '',
+        quantityNeeded: 40,
+        urgency: 'High',
+        contactPerson: 'Mrs. Tahira Perveen (Principal)',
+        contactPhone: '+92 300 4128901'
+      });
+
+      // NGO Donate Modal state
+      const [activeDonateReq, setActiveDonateReq] = useState(null);
+      const [pledgeData, setPledgeData] = useState({
+        ngoName: 'Read Pakistan Foundation',
+        quantity: 10,
+        note: '',
+        markShippedImmediately: false
+      });
+
+      // School Confirmation Modal
+      const [confirmDeliveryReq, setConfirmDeliveryReq] = useState(null);
+      const [receiptNote, setReceiptNote] = useState('');
+
+      const stats = useMemo(() => {
+        const totalRequested = requests.reduce((acc, r) => acc + r.quantityNeeded, 0);
+        const totalPledged = requests.reduce((acc, r) => acc + r.quantityPledged, 0);
+        const fulfilledCount = requests.filter(
+          (r) => r.status === 'Fulfilled' || r.status === 'Shipped' || r.status === 'Delivered'
+        ).length;
+        const uniqueSchools = new Set(requests.map((r) => r.schoolName)).size;
+        const totalPledgesCount = requests.reduce((acc, r) => acc + r.pledges.length, 0);
+
+        return {
+          totalRequested,
+          totalPledged,
+          remainingNeeded: Math.max(0, totalRequested - totalPledged),
+          fulfilledCount,
+          uniqueSchools,
+          totalPledgesCount,
+          fulfillmentRate: totalRequested > 0 ? Math.round((totalPledged / totalRequested) * 100) : 0
+        };
+      }, [requests]);
+
+      const filteredNgoRequests = useMemo(() => {
+        return requests.filter((req) => {
+          const matchesSearch =
+            req.schoolName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            req.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            req.bookTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            req.subject.toLowerCase().includes(searchQuery.toLowerCase());
+
+          const matchesSubject =
+            selectedSubject === 'All Subjects' || req.subject === selectedSubject;
+          const matchesGrade =
+            selectedGrade === 'All Grades' || req.gradeLevel === selectedGrade;
+          const matchesUrgency =
+            selectedUrgency === 'All Urgencies' || req.urgency === selectedUrgency;
+
+          const isCompleted = req.quantityPledged >= req.quantityNeeded;
+          const matchesStatus =
+            statusFilter === 'All' ||
+            (statusFilter === 'Needs Books' && !isCompleted) ||
+            (statusFilter === 'Completed' && isCompleted);
+
+          return (
+            matchesSearch &&
+            matchesSubject &&
+            matchesGrade &&
+            matchesUrgency &&
+            matchesStatus
+          );
+        });
+      }, [
+        requests,
+        searchQuery,
+        selectedSubject,
+        selectedGrade,
+        selectedUrgency,
+        statusFilter
+      ]);
+
+      const schoolNamesList = useMemo(() => {
+        const names = Array.from(new Set(requests.map((r) => r.schoolName)));
+        return ['All Schools', ...names];
+      }, [requests]);
+
+      const filteredSchoolRequests = useMemo(() => {
+        if (schoolFilterName === 'All Schools') return requests;
+        return requests.filter((r) => r.schoolName === schoolFilterName);
+      }, [requests, schoolFilterName]);
+
+      const handleCreateRequest = (e) => {
+        e.preventDefault();
+        if (!newRequest.bookTitle.trim() || !newRequest.schoolName.trim()) return;
+
+        const created = {
+          id: `req-${Date.now()}`,
+          ...newRequest,
+          quantityNeeded: Number(newRequest.quantityNeeded) || 25,
+          quantityPledged: 0,
+          status: 'Pending',
+          createdAt: 'Just now',
+          pledges: []
+        };
+
+        setRequests((prev) => [created, ...prev]);
+        setShowNewRequestForm(false);
+        setNewRequest((prev) => ({
+          ...prev,
+          bookTitle: '',
+          description: '',
+          quantityNeeded: 40
+        }));
+
+        triggerToast(
+          'Book Request Published!',
+          `"${created.bookTitle}" (${created.quantityNeeded} copies) is now live on the NGO Donor Dashboard.`
+        );
+      };
+
+      const openDonateModal = (req) => {
+        const remaining = Math.max(1, req.quantityNeeded - req.quantityPledged);
+        setActiveDonateReq(req);
+        setPledgeData({
+          ngoName: 'Read Pakistan Foundation',
+          quantity: remaining,
+          note: 'We have these books in stock and will dispatch them within 48 hours.',
+          markShippedImmediately: false
+        });
+      };
+
+      const handleConfirmPledge = (e) => {
+        e.preventDefault();
+        if (!activeDonateReq) return;
+
+        // Look up the live request from current state to avoid stale closure
+        const liveReq = requests.find(r => r.id === activeDonateReq.id);
+        if (!liveReq) return;
+
+        const remaining = liveReq.quantityNeeded - liveReq.quantityPledged;
+        if (remaining <= 0) {
+          triggerToast('Already Fulfilled', 'This request has already been fully pledged.');
+          setActiveDonateReq(null);
+          return;
+        }
+
+        const validQty = Math.min(Math.max(1, Number(pledgeData.quantity) || 1), remaining);
+
+        const newPledgeObj = {
+          id: `p-${Date.now()}`,
+          ngoName: pledgeData.ngoName.trim() || 'Partner Education NGO',
+          quantity: validQty,
+          note:
+            pledgeData.note.trim() ||
+            'Books pledged and scheduled for school delivery.',
+          date: 'Just now'
+        };
+
+        setRequests((prev) =>
+          prev.map((req) => {
+            if (req.id !== activeDonateReq.id) return req;
+            const updatedPledged = req.quantityPledged + validQty;
+            const isFullyFunded = updatedPledged >= req.quantityNeeded;
+            let nextStatus = 'Partially Funded';
+            if (isFullyFunded) {
+              nextStatus = pledgeData.markShippedImmediately ? 'Shipped' : 'Fulfilled';
+            }
+
+            return {
+              ...req,
+              quantityPledged: updatedPledged,
+              status: nextStatus,
+              pledges: [newPledgeObj, ...req.pledges]
+            };
+          })
+        );
+
+        triggerToast(
+          'Donation Pledge Confirmed!',
+          `You pledged ${validQty} copies to ${activeDonateReq.schoolName}. Both portals have been updated in real time!`
+        );
+        setActiveDonateReq(null);
+      };
+
+      const handleMarkAsShipped = (reqId) => {
+        setRequests((prev) =>
+          prev.map((r) => (r.id === reqId ? { ...r, status: 'Shipped' } : r))
+        );
+        triggerToast(
+          'Delivery Status Updated',
+          'Marked request as Shipped! The school can now track incoming delivery.'
+        );
+      };
+
+      const handleConfirmReceipt = (e) => {
+        e.preventDefault();
+        if (!confirmDeliveryReq) return;
+
+        setRequests((prev) =>
+          prev.map((r) => {
+            if (r.id !== confirmDeliveryReq.id) return r;
+            const schoolAck = {
+              id: `p-ack-${Date.now()}`,
+              ngoName: '🏫 School Receipt Confirmed',
+              quantity: r.quantityPledged,
+              note: receiptNote.trim() || 'All books received safely and placed in classroom circulation. Heartfelt thanks to donors!',
+              date: 'Just now'
+            };
+            return {
+              ...r,
+              status: 'Delivered',
+              pledges: [schoolAck, ...r.pledges]
+            };
+          })
+        );
+
+        triggerToast(
+          'Delivery Confirmed!',
+          `Books for ${confirmDeliveryReq.schoolName} marked as Delivered in classroom!`
+        );
+        setConfirmDeliveryReq(null);
+        setReceiptNote('');
+      };
+
+      return (
+        <div className="min-h-screen bg-[#FAF8F5] text-stone-800 flex flex-col font-sans">
+          {/* Real-time Notification Toast */}
+          {toast && (
+            <div className="fixed bottom-5 right-5 z-50 max-w-md bg-stone-900 text-white px-5 py-4 rounded-2xl shadow-2xl border border-stone-700 flex items-start gap-3.5 toast-animate">
+              <div className="p-2 bg-emerald-600 rounded-xl shrink-0 mt-0.5">
+                <Icon name="Sparkles" className="w-5 h-5 text-amber-200" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm text-stone-100">{toast.title}</h4>
+                <p className="text-xs text-stone-300 mt-1 leading-relaxed">
+                  {toast.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setToast(null)}
+                className="text-stone-400 hover:text-white p-1"
+              >
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Top Interactive Role Switcher Bar */}
+          <div className="bg-stone-900 text-stone-200 text-xs py-2.5 px-4 border-b border-stone-800 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Live Dual-Portal Demo
+                </span>
+                <span className="text-stone-400 hidden lg:inline">
+                  Test requesting books as a school or pledging as an NGO donor. Data saves in your browser!
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
+                  <button
+                    onClick={() => setActivePortal('school')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                      activePortal === 'school'
+                        ? 'bg-amber-500 text-stone-950 font-semibold shadow-sm'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                    }`}
+                  >
+                    <Icon name="School" className="w-3.5 h-3.5" />
+                    <span>1. School Portal</span>
+                  </button>
+                  <button
+                    onClick={() => setActivePortal('ngo')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                      activePortal === 'ngo'
+                        ? 'bg-emerald-500 text-stone-950 font-semibold shadow-sm'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                    }`}
+                  >
+                    <Icon name="HeartHandshake" className="w-3.5 h-3.5" />
+                    <span>2. NGO Donor Dashboard</span>
+                  </button>
+                  <button
+                    onClick={() => setActivePortal('impact')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                      activePortal === 'impact'
+                        ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
+                    }`}
+                  >
+                    <Icon name="BarChart3" className="w-3.5 h-3.5" />
+                    <span>3. Impact Overview</span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleResetData}
+                  title="Reset sample data"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-stone-200 border border-stone-700 text-[11px] cursor-pointer"
+                >
+                  <Icon name="RotateCcw" className="w-3 h-3" />
+                  <span>Reset Demo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Brand Header */}
+          <header className="bg-white border-b border-stone-200 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md">
+                  <Icon name="BookOpen" className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold tracking-tight text-stone-900">
+                      BookBridge
+                    </h1>
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Kitaab Dost Network
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    Direct textbook & library bridge linking under-resourced schools with education NGOs
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Live Stats Strip */}
+              <div className="flex items-center gap-6 bg-stone-50 px-4 py-2 rounded-2xl border border-stone-200">
+                <div className="text-center sm:text-left">
+                  <div className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
+                    Books Pledged
+                  </div>
+                  <div className="text-base font-bold text-emerald-700">
+                    {stats.totalPledged}{' '}
+                    <span className="text-xs font-normal text-stone-500">
+                      / {stats.totalRequested} needed
+                    </span>
+                  </div>
+                </div>
+                <div className="h-7 w-px bg-stone-200" />
+                <div className="text-center sm:text-left">
+                  <div className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
+                    Fulfillment Rate
+                  </div>
+                  <div className="text-base font-bold text-amber-600">
+                    {stats.fulfillmentRate}%
+                  </div>
+                </div>
+                <div className="h-7 w-px bg-stone-200 hidden sm:block" />
+                <div className="hidden sm:block">
+                  <div className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
+                    Partner Schools
+                  </div>
+                  <div className="text-base font-bold text-stone-800">
+                    {stats.uniqueSchools} Registered
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content Container */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* ==========================================
+                VIEW 1: SCHOOL PORTAL
+               ========================================== */}
+            {activePortal === 'school' && (
+              <div className="space-y-8">
+                {/* School Hero Banner */}
+                <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-stone-100 rounded-3xl p-6 sm:p-8 border border-amber-200/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="max-w-2xl space-y-2">
+                    <div className="inline-flex items-center gap-2 text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
+                      <Icon name="School" className="w-3.5 h-3.5" />
+                      <span>School Administrator & Teacher Portal</span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-stone-900">
+                      Request Textbooks & Storybooks for Your Classrooms
+                    </h2>
+                    <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
+                      Post the exact books, subjects, and quantities your students need. Verified education NGOs and donors can pledge partial or full shipments directly to your school gate.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    <button
+                      onClick={() => setShowNewRequestForm(!showNewRequestForm)}
+                      className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white font-semibold px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
+                    >
+                      <Icon name="PlusCircle" className="w-5 h-5 text-amber-400" />
+                      <span>
+                        {showNewRequestForm ? 'Close Request Form' : 'Submit New Book Request'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setActivePortal('ngo')}
+                      className="inline-flex items-center gap-1.5 bg-white hover:bg-stone-50 text-stone-700 font-medium px-4 py-3 rounded-xl border border-stone-300 transition-all text-sm cursor-pointer"
+                    >
+                      <span>Switch to NGO Donor View</span>
+                      <Icon name="ArrowUpRight" className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible New Book Request Form */}
+                {showNewRequestForm && (
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-400 shadow-xl space-y-6">
+                    <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                          <Icon name="BookMarked" className="w-5 h-5 text-amber-600" />
+                          <span>New School Book Request Form</span>
+                        </h3>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          Fill out the details below. Once submitted, it immediately appears on the NGO Donor Dashboard.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowNewRequestForm(false)}
+                        className="p-2 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer"
+                      >
+                        <Icon name="X" className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateRequest} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          School Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.schoolName}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, schoolName: e.target.value })
+                          }
+                          placeholder="e.g., Al-Noor Community Model School"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          City / District Location *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.location}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, location: e.target.value })
+                          }
+                          placeholder="e.g., Lahore, Punjab"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Grade Level *
+                        </label>
+                        <select
+                          value={newRequest.gradeLevel}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, gradeLevel: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm bg-white"
+                        >
+                          {GRADES.filter((g) => g !== 'All Grades').map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Subject Category *
+                        </label>
+                        <select
+                          value={newRequest.subject}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, subject: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm bg-white"
+                        >
+                          {SUBJECTS.filter((s) => s !== 'All Subjects').map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Book Title / Curriculum Specification *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.bookTitle}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, bookTitle: e.target.value })
+                          }
+                          placeholder="e.g., PTB Class 8 Mathematics Textbook & Geometry Workbooks"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Why are these books needed? (Classroom Context) *
+                        </label>
+                        <textarea
+                          rows={3}
+                          required
+                          value={newRequest.description}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, description: e.target.value })
+                          }
+                          placeholder="Explain how many students will benefit and any upcoming exams or library needs..."
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Quantity of Books Needed *
+                        </label>
+                        <input
+                          type="number"
+                          min={5}
+                          max={500}
+                          required
+                          value={newRequest.quantityNeeded}
+                          onChange={(e) =>
+                            setNewRequest({
+                              ...newRequest,
+                              quantityNeeded: Number(e.target.value) || 1
+                            })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Urgency Level *
+                        </label>
+                        <select
+                          value={newRequest.urgency}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, urgency: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm bg-white"
+                        >
+                          <option value="Critical">Critical (Needed Immediately / Exams)</option>
+                          <option value="High">High (Needed This Month)</option>
+                          <option value="Medium">Medium (General Library / Term Need)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Focal Person Name & Role *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.contactPerson}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, contactPerson: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          School Contact Phone *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.contactPhone}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, contactPhone: e.target.value })
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 flex items-center justify-end gap-3 pt-2 border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => setShowNewRequestForm(false)}
+                          className="px-5 py-2.5 rounded-xl border border-stone-300 text-stone-600 font-medium text-sm hover:bg-stone-50 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md cursor-pointer"
+                        >
+                          <Icon name="Send" className="w-4 h-4" />
+                          <span>Publish Book Request</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* School Filter Bar & Active Requests List */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-stone-900">
+                        Track School Book Requests & Incoming Pledges
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Monitor real-time donation progress and delivery notes from partner NGOs
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-stone-500">Filter by School:</span>
+                      <select
+                        value={schoolFilterName}
+                        onChange={(e) => setSchoolFilterName(e.target.value)}
+                        className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm font-medium text-stone-800 focus:outline-none focus:border-amber-500"
+                      >
+                        {schoolNamesList.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredSchoolRequests.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
+                      <Icon name="BookOpen" className="w-12 h-12 text-stone-300 mx-auto" />
+                      <h3 className="text-lg font-bold text-stone-800">
+                        No book requests found
+                      </h3>
+                      <p className="text-sm text-stone-500 max-w-md mx-auto">
+                        {schoolFilterName !== 'All Schools'
+                          ? `No requests found for "${schoolFilterName}". Try selecting "All Schools" or submit a new book request.`
+                          : 'No book requests have been submitted yet. Click "Submit New Book Request" above to get started!'}
+                      </p>
+                    </div>
+                  ) : (
+                  <div className="grid grid-cols-1 gap-5">
+                    {filteredSchoolRequests.map((req) => {
+                      const pct = Math.min(
+                        100,
+                        Math.round((req.quantityPledged / req.quantityNeeded) * 100)
+                      );
+                      const urgencyStyle = getUrgencyBadge(req.urgency);
+                      const statusStyle = getStatusBadge(req.status);
+
+                      return (
+                        <div
+                          key={req.id}
+                          className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm hover:shadow-md transition-all"
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                            <div className="space-y-3 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${statusStyle.bg}`}
+                                >
+                                  <Icon name={statusStyle.icon} className="w-3.5 h-3.5" />
+                                  {req.status}
+                                </span>
+                                <span
+                                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${urgencyStyle.bg}`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${urgencyStyle.dot}`}
+                                  />
+                                  {req.urgency} Urgency
+                                </span>
+                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-stone-100 text-stone-700">
+                                  {req.subject}
+                                </span>
+                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-stone-100 text-stone-700">
+                                  {req.gradeLevel}
+                                </span>
+                              </div>
+
+                              <div>
+                                <h4 className="text-lg font-bold text-stone-900">
+                                  {req.bookTitle}
+                                </h4>
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 mt-1">
+                                  <span className="inline-flex items-center gap-1 font-medium text-stone-700">
+                                    <Icon name="School" className="w-3.5 h-3.5 text-amber-600" />
+                                    {req.schoolName}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Icon name="MapPin" className="w-3.5 h-3.5 text-stone-400" />
+                                    {req.location}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Icon name="Phone" className="w-3.5 h-3.5 text-stone-400" />
+                                    {req.contactPerson} ({req.contactPhone})
+                                  </span>
+                                </div>
+                              </div>
+
+                              <p className="text-sm text-stone-600 leading-relaxed">
+                                {req.description}
+                              </p>
+
+                              {/* Pledges History Box */}
+                              {req.pledges.length > 0 && (
+                                <div className="pt-2">
+                                  <div className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">
+                                    NGO Pledges & Delivery Updates ({req.pledges.length})
+                                  </div>
+                                  <div className="space-y-2">
+                                    {req.pledges.map((p) => (
+                                      <div
+                                        key={p.id}
+                                        className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                      >
+                                        <div className="space-y-0.5">
+                                          <div className="font-semibold text-emerald-950 flex items-center gap-1.5">
+                                            <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600" />
+                                            <span>{p.ngoName}</span>
+                                            {p.quantity && (
+                                              <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                                +{p.quantity} Books
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="text-stone-600 pl-5">
+                                            "{p.note}"
+                                          </p>
+                                        </div>
+                                        <span className="text-stone-400 shrink-0 pl-5 sm:pl-0">
+                                          {p.date}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Right Column Progress & Action Card */}
+                            <div className="lg:w-72 bg-stone-50 rounded-2xl p-4 border border-stone-200 flex flex-col justify-between space-y-4 shrink-0">
+                              <div className="space-y-2">
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                                    Fulfillment Progress
+                                  </span>
+                                  <span className="text-sm font-bold text-emerald-700">
+                                    {pct}%
+                                  </span>
+                                </div>
+
+                                <div className="w-full h-3 bg-stone-200 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      pct >= 100
+                                        ? 'bg-emerald-600'
+                                        : pct > 0
+                                        ? 'bg-amber-500'
+                                        : 'bg-stone-300'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs text-stone-600 pt-1">
+                                  <span>
+                                    <strong className="text-stone-900 text-sm">
+                                      {req.quantityPledged}
+                                    </strong>{' '}
+                                    pledged
+                                  </span>
+                                  <span>
+                                    Goal:{' '}
+                                    <strong className="text-stone-900 text-sm">
+                                      {req.quantityNeeded}
+                                    </strong>{' '}
+                                    books
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-stone-200 flex flex-col gap-2">
+                                {req.status === 'Shipped' && (
+                                  <button
+                                    onClick={() => setConfirmDeliveryReq(req)}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                  >
+                                    <Icon name="PackageCheck" className="w-4 h-4" />
+                                    <span>Confirm Books Received</span>
+                                  </button>
+                                )}
+
+                                {req.status === 'Delivered' && (
+                                  <div className="w-full py-2 px-3 rounded-xl bg-teal-100 text-teal-900 font-semibold text-xs flex items-center justify-center gap-1.5">
+                                    <Icon name="PackageCheck" className="w-4 h-4 text-teal-700" />
+                                    <span>Received in Classroom!</span>
+                                  </div>
+                                )}
+
+                                {req.quantityPledged < req.quantityNeeded ? (
+                                  <button
+                                    onClick={() => openDonateModal(req)}
+                                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                  >
+                                    <Icon name="HeartHandshake" className="w-4 h-4" />
+                                    <span>Simulate NGO Pledge ({req.quantityNeeded - req.quantityPledged} left)</span>
+                                  </button>
+                                ) : req.status === 'Fulfilled' ? (
+                                  <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5">
+                                    <Icon name="CheckCircle2" className="w-4 h-4 text-emerald-700" />
+                                    <span>100% Books Pledged!</span>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ==========================================
+                VIEW 2: NGO DONOR DASHBOARD
+               ========================================== */}
+            {activePortal === 'ngo' && (
+              <div className="space-y-8">
+                {/* NGO Hero Banner */}
+                <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 text-white rounded-3xl p-6 sm:p-8 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="max-w-2xl space-y-2">
+                    <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300 bg-emerald-800/80 px-3 py-1 rounded-full border border-emerald-700">
+                      <Icon name="HeartHandshake" className="w-3.5 h-3.5" />
+                      <span>NGO & Book Donor Fulfillment Feed</span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                      Discover Verified School Book Needs & Pledge Directly
+                    </h2>
+                    <p className="text-emerald-100/80 text-sm sm:text-base leading-relaxed">
+                      Browse real-time requests from under-resourced schools. Filter by subject, grade level, or urgency, and pledge partial or complete book bundles with transparent delivery tracking.
+                    </p>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/15 flex items-center gap-5 shrink-0">
+                    <div>
+                      <div className="text-xs text-emerald-200">Still Needed Across Schools</div>
+                      <div className="text-2xl font-bold text-amber-300">
+                        {stats.remainingNeeded} Books
+                      </div>
+                      <div className="text-[11px] text-emerald-100/70 mt-0.5">
+                        In {requests.filter((r) => r.quantityPledged < r.quantityNeeded).length} active school requests
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePortal('school');
+                        setShowNewRequestForm(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-semibold text-xs transition-all cursor-pointer shrink-0"
+                    >
+                      + Add School Request
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search & Multi-Filter Control Bar */}
+                <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    {/* Search Input */}
+                    <div className="md:col-span-4 relative">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400">
+                        <Icon name="Search" className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search school, city, book title..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Subject Filter */}
+                    <div className="md:col-span-3">
+                      <select
+                        value={selectedSubject}
+                        onChange={(e) => setSelectedSubject(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white focus:border-emerald-600 focus:outline-none"
+                      >
+                        {SUBJECTS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Grade Filter */}
+                    <div className="md:col-span-3">
+                      <select
+                        value={selectedGrade}
+                        onChange={(e) => setSelectedGrade(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white focus:border-emerald-600 focus:outline-none"
+                      >
+                        {GRADES.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Urgency Filter */}
+                    <div className="md:col-span-2">
+                      <select
+                        value={selectedUrgency}
+                        onChange={(e) => setSelectedUrgency(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white focus:border-emerald-600 focus:outline-none"
+                      >
+                        {URGENCIES.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Quick Status Pills & Reset */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                        <Icon name="Filter" className="w-3.5 h-3.5" /> Status:
+                      </span>
+                      {['All', 'Needs Books', 'Completed'].map((st) => (
+                        <button
+                          key={st}
+                          onClick={() => setStatusFilter(st)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            statusFilter === st
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-stone-500">
+                      <span>
+                        Showing <strong>{filteredNgoRequests.length}</strong> of{' '}
+                        {requests.length} school requests
+                      </span>
+                      {(searchQuery ||
+                        selectedSubject !== 'All Subjects' ||
+                        selectedGrade !== 'All Grades' ||
+                        selectedUrgency !== 'All Urgencies' ||
+                        statusFilter !== 'All') && (
+                        <button
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSelectedSubject('All Subjects');
+                            setSelectedGrade('All Grades');
+                            setSelectedUrgency('All Urgencies');
+                            setStatusFilter('All');
+                          }}
+                          className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+                        >
+                          Reset Filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* NGO Request Cards Grid */}
+                {filteredNgoRequests.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
+                    <Icon name="BookOpen" className="w-12 h-12 text-stone-300 mx-auto" />
+                    <h3 className="text-lg font-bold text-stone-800">
+                      No matching book requests found
+                    </h3>
+                    <p className="text-sm text-stone-500 max-w-md mx-auto">
+                      Try clearing your search filters or switching the status tab to "All" to view completed requests.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredNgoRequests.map((req) => {
+                      const pct = Math.min(
+                        100,
+                        Math.round((req.quantityPledged / req.quantityNeeded) * 100)
+                      );
+                      const remaining = Math.max(
+                        0,
+                        req.quantityNeeded - req.quantityPledged
+                      );
+                      const urgencyStyle = getUrgencyBadge(req.urgency);
+                      const statusStyle = getStatusBadge(req.status);
+
+                      return (
+                        <div
+                          key={req.id}
+                          className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-5"
+                        >
+                          <div className="space-y-4">
+                            {/* Top Badges */}
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${urgencyStyle.bg}`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${urgencyStyle.dot}`}
+                                  />
+                                  {req.urgency} Need
+                                </span>
+                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  {req.subject}
+                                </span>
+                              </div>
+
+                              <span
+                                className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${statusStyle.bg}`}
+                              >
+                                <Icon name={statusStyle.icon} className="w-3.5 h-3.5" />
+                                {req.status}
+                              </span>
+                            </div>
+
+                            {/* Book Title & School Info */}
+                            <div>
+                              <h3 className="text-lg font-bold text-stone-900 leading-snug">
+                                {req.bookTitle}
+                              </h3>
+                              <div className="mt-2 flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-stone-600">
+                                <span className="inline-flex items-center gap-1 font-semibold text-stone-800">
+                                  <Icon name="School" className="w-3.5 h-3.5 text-emerald-700" />
+                                  {req.schoolName}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon name="MapPin" className="w-3.5 h-3.5 text-stone-400" />
+                                  {req.location}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon name="GraduationCap" className="w-3.5 h-3.5 text-stone-400" />
+                                  {req.gradeLevel}
+                                </span>
+                              </div>
+                            </div>
+
+                            <p className="text-sm text-stone-600 leading-relaxed">
+                              {req.description}
+                            </p>
+
+                            {/* Recent Pledge Snippet */}
+                            {req.pledges.length > 0 && (
+                              <div className="bg-stone-50 rounded-xl p-3 border border-stone-200 text-xs space-y-1">
+                                <div className="font-semibold text-stone-700 flex items-center justify-between">
+                                  <span>Latest Activity:</span>
+                                  <span className="text-emerald-700">
+                                    {req.pledges[0].ngoName} {req.pledges[0].quantity ? `(+${req.pledges[0].quantity})` : ''}
+                                  </span>
+                                </div>
+                                <p className="text-stone-500 truncate">
+                                  "{req.pledges[0].note}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Progress Bar & NGO Action Footer */}
+                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-stone-700">
+                                  {req.quantityPledged} of {req.quantityNeeded} books pledged
+                                </span>
+                                <span className="font-bold text-emerald-700">
+                                  {remaining > 0 ? `${remaining} still needed` : 'Goal Met!'}
+                                </span>
+                              </div>
+                              <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    pct >= 100 ? 'bg-emerald-600' : 'bg-amber-500'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[11px] text-stone-500">
+                                <div>Contact: {req.contactPerson}</div>
+                                <div>Posted {req.createdAt}</div>
+                              </div>
+
+                              {remaining > 0 ? (
+                                <button
+                                  onClick={() => openDonateModal(req)}
+                                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm hover:shadow transition-all cursor-pointer"
+                                >
+                                  <Icon name="HeartHandshake" className="w-4 h-4" />
+                                  <span>Donate / Pledge Books</span>
+                                </button>
+                              ) : req.status === 'Fulfilled' ? (
+                                <button
+                                  onClick={() => handleMarkAsShipped(req.id)}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                                >
+                                  <Icon name="Truck" className="w-3.5 h-3.5" />
+                                  <span>Mark Dispatched</span>
+                                </button>
+                              ) : req.status === 'Shipped' ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200">
+                                  <Icon name="Truck" className="w-4 h-4" />
+                                  <span>Shipped via Courier</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-teal-50 px-3 py-2 rounded-xl border border-teal-200">
+                                  <Icon name="PackageCheck" className="w-4 h-4" />
+                                  <span>Delivered in Classroom</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ==========================================
+                VIEW 3: IMPACT OVERVIEW
+               ========================================== */}
+            {activePortal === 'impact' && (
+              <div className="space-y-8">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-sm space-y-6">
+                  <div className="max-w-2xl space-y-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-sky-100 text-sky-800">
+                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
+                      Live Transparency & Literacy Impact
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-stone-900">
+                      Every Donated Book Builds a Classroom Bridge
+                    </h2>
+                    <p className="text-sm text-stone-600 leading-relaxed">
+                      Real-time metrics aggregating all school textbook requests, NGO pledges, and subject-level distribution across regions.
+                    </p>
+                  </div>
+
+                  {/* 4 Key Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 space-y-1">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                        Total Books Pledged
+                      </div>
+                      <div className="text-3xl font-bold text-emerald-950">
+                        {stats.totalPledged}
+                      </div>
+                      <div className="text-xs text-emerald-700">
+                        Out of {stats.totalRequested} total requested ({stats.fulfillmentRate}%)
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 space-y-1">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-amber-800">
+                        Students Reached (Est.)
+                      </div>
+                      <div className="text-3xl font-bold text-amber-950">
+                        {stats.totalPledged * 2}
+                      </div>
+                      <div className="text-xs text-amber-800">
+                        Assuming 2 students share each textbook or library book
+                      </div>
+                    </div>
+
+                    <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-5 space-y-1">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-sky-800">
+                        Fulfilled Requests
+                      </div>
+                      <div className="text-3xl font-bold text-sky-950">
+                        {stats.fulfilledCount} / {requests.length}
+                      </div>
+                      <div className="text-xs text-sky-800">
+                        Funded, shipped, or delivered to schools
+                      </div>
+                    </div>
+
+                    <div className="bg-stone-100 border border-stone-200 rounded-2xl p-5 space-y-1">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+                        Verified NGO Pledges
+                      </div>
+                      <div className="text-3xl font-bold text-stone-900">
+                        {stats.totalPledgesCount}
+                      </div>
+                      <div className="text-xs text-stone-600">
+                        Across {stats.uniqueSchools} partner schools
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subject Breakdown Table */}
+                  <div className="pt-4">
+                    <h3 className="text-base font-bold text-stone-900 mb-4">
+                      Book Needs & Fulfillment by Subject Area
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {SUBJECTS.filter((s) => s !== 'All Subjects').map((subject) => {
+                        const subjReqs = requests.filter((r) => r.subject === subject);
+                        const needed = subjReqs.reduce(
+                          (sum, r) => sum + r.quantityNeeded,
+                          0
+                        );
+                        const pledged = subjReqs.reduce(
+                          (sum, r) => sum + r.quantityPledged,
+                          0
+                        );
+                        const pct = needed > 0 ? Math.round((pledged / needed) * 100) : 0;
+
+                        return (
+                          <div
+                            key={subject}
+                            className="p-4 rounded-2xl border border-stone-200 bg-stone-50/60 space-y-2"
+                          >
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-bold text-stone-800">{subject}</span>
+                              <span className="text-xs font-semibold text-stone-600">
+                                {pledged} / {needed} books ({pct}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* ==========================================
+              MODAL: NGO DONATE / PLEDGE BOOKS
+             ========================================== */}
+          {activeDonateReq && (
+            <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-6">
+                <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                      Direct NGO Book Pledge
+                    </span>
+                    <h3 className="text-xl font-bold text-stone-900 mt-2">
+                      {activeDonateReq.bookTitle}
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      For {activeDonateReq.schoolName} ({activeDonateReq.location})
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveDonateReq(null)}
+                    className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                  >
+                    <Icon name="X" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleConfirmPledge} className="space-y-4">
+                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-stone-500 block">Current Status</span>
+                      <strong className="text-stone-800 text-sm">
+                        {activeDonateReq.quantityPledged} / {activeDonateReq.quantityNeeded} Books Pledged
+                      </strong>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-stone-500 block">Remaining Need</span>
+                      <strong className="text-emerald-700 text-sm">
+                        {activeDonateReq.quantityNeeded - activeDonateReq.quantityPledged} Copies
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                      Your NGO / Donor Organization Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={pledgeData.ngoName}
+                      onChange={(e) =>
+                        setPledgeData({ ...pledgeData, ngoName: e.target.value })
+                      }
+                      placeholder="e.g., Read Pakistan Foundation"
+                      className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600">
+                        Number of Books to Pledge *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPledgeData({
+                            ...pledgeData,
+                            quantity:
+                              activeDonateReq.quantityNeeded -
+                              activeDonateReq.quantityPledged
+                          })
+                        }
+                        className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        Fulfill Entire Remaining ({activeDonateReq.quantityNeeded - activeDonateReq.quantityPledged} books)
+                      </button>
+                    </div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={
+                        activeDonateReq.quantityNeeded - activeDonateReq.quantityPledged
+                      }
+                      required
+                      value={pledgeData.quantity}
+                      onChange={(e) =>
+                        setPledgeData({ ...pledgeData, quantity: Number(e.target.value) || 1 })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm font-bold text-stone-900 focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                      Delivery / Dispatch Note for the School Principal *
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={pledgeData.note}
+                      onChange={(e) =>
+                        setPledgeData({ ...pledgeData, note: e.target.value })
+                      }
+                      placeholder="Include courier details (e.g. TCS / Leopards tracking), arrival estimate, or contact person..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2.5 text-xs text-stone-700 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={pledgeData.markShippedImmediately}
+                      onChange={(e) =>
+                        setPledgeData({
+                          ...pledgeData,
+                          markShippedImmediately: e.target.checked
+                        })
+                      }
+                      className="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>
+                      If this completes the request, mark status directly as{' '}
+                      <strong>Shipped</strong>
+                    </span>
+                  </label>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => setActiveDonateReq(null)}
+                      className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-600 font-medium text-sm hover:bg-stone-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md cursor-pointer"
+                    >
+                      <Icon name="Check" className="w-4 h-4" />
+                      <span>Confirm Book Pledge</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ==========================================
+              MODAL: SCHOOL CONFIRM DELIVERY RECEIPT
+             ========================================== */}
+          {confirmDeliveryReq && (
+            <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-6">
+                <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+                      School Delivery Receipt
+                    </span>
+                    <h3 className="text-xl font-bold text-stone-900 mt-2">
+                      Confirm Arrival of Books
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      {confirmDeliveryReq.bookTitle} — {confirmDeliveryReq.schoolName}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setConfirmDeliveryReq(null)}
+                    className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                  >
+                    <Icon name="X" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleConfirmReceipt} className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs text-indigo-950 space-y-1">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Icon name="PackageCheck" className="w-4 h-4 text-indigo-600" />
+                      <span>{confirmDeliveryReq.quantityPledged} Books Shipped to School</span>
+                    </div>
+                    <p className="text-indigo-800">
+                      Confirming arrival marks this request as <strong>Delivered</strong> and sends an acknowledgment to the donor NGO.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                      Receipt & Thank You Note (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={receiptNote}
+                      onChange={(e) => setReceiptNote(e.target.value)}
+                      placeholder="e.g., Books arrived safely today in good condition. Distributed to Grade 8 students. Thank you!"
+                      className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-indigo-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeliveryReq(null)}
+                      className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-600 font-medium text-sm hover:bg-stone-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md cursor-pointer"
+                    >
+                      <Icon name="Check" className="w-4 h-4" />
+                      <span>Confirm Books Received in Classroom</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer className="bg-white border-t border-stone-200 py-6 px-4 text-center text-xs text-stone-500 mt-12">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 font-semibold text-stone-700">
+                <Icon name="BookOpen" className="w-4 h-4 text-emerald-600" />
+                <span>BookBridge — Connecting Classrooms & Education NGOs</span>
+              </div>
+              <div>
+                Interactive Dual-Portal Demo with Local Browser Persistence
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

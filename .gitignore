@@ -1,0 +1,5 @@
+# Ignore unrelated files in pc-stuff
+*
+!index.html
+!README.md
+!.gitignore
