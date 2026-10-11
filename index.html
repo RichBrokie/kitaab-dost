@@ -365,6 +365,44 @@
       }
     }
 
+    function parsePledgeContact(rawNote) {
+      if (!rawNote) return { cleanNote: '', contactPerson: '', contactPhone: '' };
+
+      const tagMatch = rawNote.match(/\[NGO Contact:\s*([^|]+)\s*\|\s*WhatsApp:\s*([^\]]+)\]/);
+      if (tagMatch) {
+        return {
+          cleanNote: rawNote.replace(/\[NGO Contact:.*?\]/, '').trim(),
+          contactPerson: tagMatch[1].trim(),
+          contactPhone: tagMatch[2].trim()
+        };
+      }
+
+      const phoneMatch = rawNote.match(/(?:\+92|03)[\d\s-]{9,13}/);
+      return {
+        cleanNote: rawNote,
+        contactPerson: '',
+        contactPhone: phoneMatch ? phoneMatch[0].trim() : ''
+      };
+    }
+
+    function getWhatsAppLink(phone, schoolName, bookTitle) {
+      if (!phone) return '#';
+      let clean = phone.replace(/[^\d+]/g, '');
+      if (clean.startsWith('03')) {
+        clean = '92' + clean.slice(1);
+      } else if (clean.startsWith('+92')) {
+        clean = clean.slice(1);
+      }
+      const msg = `Assalam-o-Alaikum, this is ${schoolName || 'our school'} regarding our book request for "${bookTitle || 'textbooks'}" on Kitaab Dost Network.`;
+      return `https://api.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(msg)}`;
+    }
+
+    function getTelLink(phone) {
+      if (!phone) return '#';
+      const clean = phone.replace(/[^\d+]/g, '');
+      return `tel:${clean}`;
+    }
+
     // --- Supabase Cloud Database Configuration ---
     const SUPABASE_URL = 'https://uqotflogqjlkhozhrpdd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_CnrssUURtC-vv4cYyRTRpw_1Bc-HHI3';
@@ -427,13 +465,18 @@
               contactPhone: r.contact_phone,
               status: r.status,
               createdAt: r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recently',
-              pledges: (r.pledges || []).map((p) => ({
-                id: p.id,
-                ngoName: p.ngo_name,
-                quantity: p.quantity,
-                note: p.note,
-                date: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recently'
-              }))
+              pledges: (r.pledges || []).map((p) => {
+                const parsed = parsePledgeContact(p.note || '');
+                return {
+                  id: p.id,
+                  ngoName: p.ngo_name,
+                  quantity: p.quantity,
+                  note: parsed.cleanNote,
+                  contactPerson: parsed.contactPerson,
+                  contactPhone: parsed.contactPhone,
+                  date: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recently'
+                };
+              })
             }));
             setRequests(formatted);
             setDbConnected(true);
@@ -739,6 +782,8 @@
       const [pledgeData, setPledgeData] = useState({
         ngoName: '',
         quantity: 10,
+        contactPerson: '',
+        contactPhone: '',
         note: '',
         markShippedImmediately: false
       });
@@ -923,6 +968,8 @@
         setPledgeData({
           ngoName: currentUser.role === 'ngo' ? currentUser.organization : '',
           quantity: remaining,
+          contactPerson: currentUser?.name || '',
+          contactPhone: currentUser?.phone || '',
           note: 'We have these books in stock and will dispatch them promptly.',
           markShippedImmediately: false
         });
@@ -948,13 +995,23 @@
           ? currentUser.organization.trim()
           : (pledgeData.ngoName.trim() || 'Partner Education NGO');
 
+        const contactPerson = (pledgeData.contactPerson || currentUser?.name || '').trim();
+        const contactPhone = (pledgeData.contactPhone || currentUser?.phone || '').trim();
+
+        const contactTag = contactPhone
+          ? `\n[NGO Contact: ${contactPerson || 'Representative'} | WhatsApp: ${contactPhone}]`
+          : '';
+
+        const cleanNoteText = pledgeData.note.trim() || 'Books pledged and scheduled for school delivery.';
+        const fullStoredNote = cleanNoteText + contactTag;
+
         const newPledgeObj = {
           id: `p-${Date.now()}`,
           ngoName: effectiveNgoName,
           quantity: validQty,
-          note:
-            pledgeData.note.trim() ||
-            'Books pledged and scheduled for school delivery.',
+          note: cleanNoteText,
+          contactPerson: contactPerson,
+          contactPhone: contactPhone,
           date: 'Just now'
         };
 
@@ -990,7 +1047,7 @@
               request_id: liveReq.id,
               ngo_name: newPledgeObj.ngoName,
               quantity: newPledgeObj.quantity,
-              note: newPledgeObj.note
+              note: fullStoredNote
             });
             await supabaseClient.from('book_requests').update({
               quantity_pledged: updatedPledged,
@@ -1920,31 +1977,70 @@
                                   <div className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">
                                     NGO Pledges & Delivery Updates ({req.pledges.length})
                                   </div>
-                                  <div className="space-y-2">
-                                    {req.pledges.map((p) => (
-                                      <div
-                                        key={p.id}
-                                        className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                                      >
-                                        <div className="space-y-0.5">
-                                          <div className="font-semibold text-emerald-950 flex items-center gap-1.5">
-                                            <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600" />
-                                            <span>{p.ngoName}</span>
-                                            {p.quantity && (
-                                              <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                                                +{p.quantity} Books
-                                              </span>
-                                            )}
+                                  <div className="space-y-2.5">
+                                    {req.pledges.map((p) => {
+                                      const effectivePhone = p.contactPhone;
+                                      const effectivePerson = p.contactPerson;
+                                      return (
+                                        <div
+                                          key={p.id}
+                                          className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 space-y-2 text-xs"
+                                        >
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                            <div className="font-semibold text-emerald-950 flex items-center gap-1.5 flex-wrap">
+                                              <Icon name="HeartHandshake" className="w-4 h-4 text-emerald-600 shrink-0" />
+                                              <span>{p.ngoName}</span>
+                                              {p.quantity && (
+                                                <span className="text-emerald-800 bg-emerald-100/90 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                                                  +{p.quantity} Books
+                                                </span>
+                                              )}
+                                            </div>
+                                            <span className="text-stone-400 text-[11px] shrink-0">
+                                              {p.date}
+                                            </span>
                                           </div>
-                                          <p className="text-stone-600 pl-5">
+
+                                          <p className="text-stone-700 bg-white/80 p-2.5 rounded-lg border border-emerald-100 leading-relaxed">
                                             "{p.note}"
                                           </p>
+
+                                          {/* Direct Contact & WhatsApp Action Bar for School */}
+                                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-emerald-200/60">
+                                            <div className="flex items-center gap-1.5 text-stone-600 text-[11px]">
+                                              <Icon name="Phone" className="w-3 h-3 text-emerald-700 shrink-0" />
+                                              <span>
+                                                {effectivePerson ? `${effectivePerson}: ` : 'Focal Contact: '}
+                                                <strong className="text-stone-900">{effectivePhone || 'Available upon dispatch'}</strong>
+                                              </span>
+                                            </div>
+
+                                            {effectivePhone && (
+                                              <div className="flex items-center gap-1.5">
+                                                <a
+                                                  href={getWhatsAppLink(effectivePhone, req.schoolName, req.bookTitle)}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] shadow-sm transition-all cursor-pointer"
+                                                  title="Message this NGO donor directly on WhatsApp"
+                                                >
+                                                  <Icon name="Send" className="w-3 h-3 text-emerald-100" />
+                                                  <span>WhatsApp NGO</span>
+                                                </a>
+                                                <a
+                                                  href={getTelLink(effectivePhone)}
+                                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-semibold text-[11px] border border-emerald-300 transition-all cursor-pointer"
+                                                  title="Call representative"
+                                                >
+                                                  <Icon name="Phone" className="w-3 h-3 text-emerald-700" />
+                                                  <span>Call</span>
+                                                </a>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                        <span className="text-stone-400 shrink-0 pl-5 sm:pl-0">
-                                          {p.date}
-                                        </span>
-                                      </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -2657,18 +2753,51 @@
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                        NGO Focal Person Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={pledgeData.contactPerson}
+                        onChange={(e) =>
+                          setPledgeData({ ...pledgeData, contactPerson: e.target.value })
+                        }
+                        placeholder="e.g., Tariq Mansoor"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                        WhatsApp / Mobile Number for School *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={pledgeData.contactPhone}
+                        onChange={(e) =>
+                          setPledgeData({ ...pledgeData, contactPhone: e.target.value })
+                        }
+                        placeholder="e.g., +92 321 5550192"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
                       Delivery / Dispatch Note for the School Principal *
                     </label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       required
                       value={pledgeData.note}
                       onChange={(e) =>
                         setPledgeData({ ...pledgeData, note: e.target.value })
                       }
-                      placeholder="Include courier details (e.g. TCS / Leopards tracking), arrival estimate, or contact person..."
+                      placeholder="Include courier details (e.g. TCS / Leopards tracking), arrival estimate, or dispatch instructions..."
                       className="w-full px-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:border-emerald-600 focus:outline-none"
                     />
                   </div>
