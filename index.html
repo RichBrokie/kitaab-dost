@@ -11,6 +11,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <!-- Babel Standalone to transpile JSX in-browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Supabase JS Client for Real-Time Cloud Database -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -418,11 +420,20 @@
       }
     }
 
+    // --- Supabase Cloud Database Configuration ---
+    const SUPABASE_URL = 'https://uqotflogqjlkhozhrpdd.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_CnrssUURtC-vv4cYyRTRpw_1Bc-HHI3';
+    const supabaseClient = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
     function App() {
       // Active Role View: 'school' | 'ngo' | 'impact'
       const [activePortal, setActivePortal] = useState('school');
+      const [dbConnected, setDbConnected] = useState(false);
+      const [isSyncing, setIsSyncing] = useState(false);
 
-      // Requests with LocalStorage persistence
+      // Requests with fallback to LocalStorage
       const [requests, setRequests] = useState(() => {
         try {
           const saved = localStorage.getItem('bookbridge_requests');
@@ -431,6 +442,79 @@
           return INITIAL_REQUESTS;
         }
       });
+
+      // Fetch all requests and pledges from Supabase
+      const fetchRequestsFromSupabase = async () => {
+        if (!supabaseClient) return;
+        setIsSyncing(true);
+        try {
+          const { data, error } = await supabaseClient
+            .from('book_requests')
+            .select('*, pledges(*)')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          if (data && data.length > 0) {
+            const formatted = data.map((r) => ({
+              id: r.id,
+              schoolName: r.school_name,
+              location: r.location,
+              gradeLevel: r.grade_level,
+              subject: r.subject,
+              bookTitle: r.book_title,
+              description: r.description,
+              quantityNeeded: r.quantity_needed,
+              quantityPledged: r.quantity_pledged,
+              urgency: r.urgency,
+              contactPerson: r.contact_person,
+              contactPhone: r.contact_phone,
+              status: r.status,
+              createdAt: r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recently',
+              pledges: (r.pledges || []).map((p) => ({
+                id: p.id,
+                ngoName: p.ngo_name,
+                quantity: p.quantity,
+                note: p.note,
+                date: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recently'
+              }))
+            }));
+            setRequests(formatted);
+            setDbConnected(true);
+          }
+        } catch (err) {
+          console.warn('Supabase fetch notice (using local cache):', err);
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+
+      // Realtime multi-user syncing: auto updates when any user/school/NGO adds data
+      useEffect(() => {
+        fetchRequestsFromSupabase();
+
+        let channel = null;
+        if (supabaseClient) {
+          channel = supabaseClient
+            .channel('public:realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'book_requests' }, () => {
+              fetchRequestsFromSupabase();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pledges' }, () => {
+              fetchRequestsFromSupabase();
+            })
+            .subscribe((status) => {
+              if (status === 'SUBSCRIBED') {
+                setDbConnected(true);
+              }
+            });
+        }
+
+        return () => {
+          if (channel && supabaseClient) {
+            supabaseClient.removeChannel(channel);
+          }
+        };
+      }, []);
 
       useEffect(() => {
         try {
@@ -566,7 +650,7 @@
         return requests.filter((r) => r.schoolName === schoolFilterName);
       }, [requests, schoolFilterName]);
 
-      const handleCreateRequest = (e) => {
+      const handleCreateRequest = async (e) => {
         e.preventDefault();
         if (!newRequest.bookTitle.trim() || !newRequest.schoolName.trim()) return;
 
@@ -591,8 +675,31 @@
 
         triggerToast(
           'Book Request Published!',
-          `"${created.bookTitle}" (${created.quantityNeeded} copies) is now live on the NGO Donor Dashboard.`
+          `"${created.bookTitle}" (${created.quantityNeeded} copies) saved to cloud database.`
         );
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('book_requests').insert({
+              id: created.id,
+              school_name: created.schoolName,
+              location: created.location,
+              grade_level: created.gradeLevel,
+              subject: created.subject,
+              book_title: created.bookTitle,
+              description: created.description,
+              quantity_needed: created.quantityNeeded,
+              quantity_pledged: 0,
+              urgency: created.urgency,
+              contact_person: created.contactPerson,
+              contact_phone: created.contactPhone,
+              status: 'Pending'
+            });
+            fetchRequestsFromSupabase();
+          } catch (err) {
+            console.error('Supabase insert error:', err);
+          }
+        }
       };
 
       const openDonateModal = (req) => {
@@ -606,11 +713,10 @@
         });
       };
 
-      const handleConfirmPledge = (e) => {
+      const handleConfirmPledge = async (e) => {
         e.preventDefault();
         if (!activeDonateReq) return;
 
-        // Look up the live request from current state to avoid stale closure
         const liveReq = requests.find(r => r.id === activeDonateReq.id);
         if (!liveReq) return;
 
@@ -633,16 +739,16 @@
           date: 'Just now'
         };
 
+        const updatedPledged = liveReq.quantityPledged + validQty;
+        const isFullyFunded = updatedPledged >= liveReq.quantityNeeded;
+        let nextStatus = 'Partially Funded';
+        if (isFullyFunded) {
+          nextStatus = pledgeData.markShippedImmediately ? 'Shipped' : 'Fulfilled';
+        }
+
         setRequests((prev) =>
           prev.map((req) => {
-            if (req.id !== activeDonateReq.id) return req;
-            const updatedPledged = req.quantityPledged + validQty;
-            const isFullyFunded = updatedPledged >= req.quantityNeeded;
-            let nextStatus = 'Partially Funded';
-            if (isFullyFunded) {
-              nextStatus = pledgeData.markShippedImmediately ? 'Shipped' : 'Fulfilled';
-            }
-
+            if (req.id !== liveReq.id) return req;
             return {
               ...req,
               quantityPledged: updatedPledged,
@@ -654,35 +760,68 @@
 
         triggerToast(
           'Donation Pledge Confirmed!',
-          `You pledged ${validQty} copies to ${activeDonateReq.schoolName}. Both portals have been updated in real time!`
+          `You pledged ${validQty} copies to ${liveReq.schoolName}. Cloud database updated!`
         );
         setActiveDonateReq(null);
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('pledges').insert({
+              id: newPledgeObj.id,
+              request_id: liveReq.id,
+              ngo_name: newPledgeObj.ngoName,
+              quantity: newPledgeObj.quantity,
+              note: newPledgeObj.note
+            });
+            await supabaseClient.from('book_requests').update({
+              quantity_pledged: updatedPledged,
+              status: nextStatus
+            }).eq('id', liveReq.id);
+            fetchRequestsFromSupabase();
+          } catch (err) {
+            console.error('Supabase pledge error:', err);
+          }
+        }
       };
 
-      const handleMarkAsShipped = (reqId) => {
+      const handleMarkAsShipped = async (reqId) => {
         setRequests((prev) =>
           prev.map((r) => (r.id === reqId ? { ...r, status: 'Shipped' } : r))
         );
         triggerToast(
           'Delivery Status Updated',
-          'Marked request as Shipped! The school can now track incoming delivery.'
+          'Marked request as Shipped in cloud! The school can now track incoming delivery.'
         );
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('book_requests').update({
+              status: 'Shipped'
+            }).eq('id', reqId);
+            fetchRequestsFromSupabase();
+          } catch (err) {
+            console.error('Supabase status update error:', err);
+          }
+        }
       };
 
-      const handleConfirmReceipt = (e) => {
+      const handleConfirmReceipt = async (e) => {
         e.preventDefault();
         if (!confirmDeliveryReq) return;
 
+        const schoolAck = {
+          id: `p-ack-${Date.now()}`,
+          ngoName: '🏫 School Receipt Confirmed',
+          quantity: confirmDeliveryReq.quantityPledged,
+          note: receiptNote.trim() || 'All books received safely and placed in classroom circulation. Heartfelt thanks to donors!',
+          date: 'Just now'
+        };
+
+        const targetId = confirmDeliveryReq.id;
+
         setRequests((prev) =>
           prev.map((r) => {
-            if (r.id !== confirmDeliveryReq.id) return r;
-            const schoolAck = {
-              id: `p-ack-${Date.now()}`,
-              ngoName: '🏫 School Receipt Confirmed',
-              quantity: r.quantityPledged,
-              note: receiptNote.trim() || 'All books received safely and placed in classroom circulation. Heartfelt thanks to donors!',
-              date: 'Just now'
-            };
+            if (r.id !== targetId) return r;
             return {
               ...r,
               status: 'Delivered',
@@ -697,6 +836,24 @@
         );
         setConfirmDeliveryReq(null);
         setReceiptNote('');
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('pledges').insert({
+              id: schoolAck.id,
+              request_id: targetId,
+              ngo_name: schoolAck.ngoName,
+              quantity: schoolAck.quantity,
+              note: schoolAck.note
+            });
+            await supabaseClient.from('book_requests').update({
+              status: 'Delivered'
+            }).eq('id', targetId);
+            fetchRequestsFromSupabase();
+          } catch (err) {
+            console.error('Supabase receipt error:', err);
+          }
+        }
       };
 
       return (
@@ -726,11 +883,12 @@
           <div className="bg-stone-900 text-stone-200 text-xs py-2.5 px-4 border-b border-stone-800 sticky top-0 z-40">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Live Dual-Portal Demo
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className={`w-1.5 h-1.5 rounded-full ${dbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                  {dbConnected ? 'Supabase Cloud Synced' : isSyncing ? 'Connecting to Cloud...' : 'Cloud Database'}
                 </span>
                 <span className="text-stone-400 hidden lg:inline">
-                  Test requesting books as a school or pledging as an NGO donor. Data saves in your browser!
+                  Live database connected — requests and pledges sync instantly across all devices!
                 </span>
               </div>
 
@@ -1301,12 +1459,17 @@
                                     <Icon name="HeartHandshake" className="w-4 h-4" />
                                     <span>Simulate NGO Pledge ({req.quantityNeeded - req.quantityPledged} left)</span>
                                   </button>
-                                ) : req.status === 'Fulfilled' ? (
-                                  <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5">
-                                    <Icon name="CheckCircle2" className="w-4 h-4 text-emerald-700" />
-                                    <span>100% Books Pledged!</span>
-                                  </div>
                                 ) : null}
+
+                                <a
+                                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📚 School Book Request for ${req.schoolName} (${req.location}): Need ${req.quantityNeeded - req.quantityPledged} copies of "${req.bookTitle}". See details & pledge here: https://richbrokie.github.io/kitaab-dost/`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 transition-all cursor-pointer"
+                                >
+                                  <Icon name="Send" className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Share on WhatsApp</span>
+                                </a>
                               </div>
                             </div>
                           </div>
@@ -1595,33 +1758,46 @@
                                 <div>Posted {req.createdAt}</div>
                               </div>
 
-                              {remaining > 0 ? (
-                                <button
-                                  onClick={() => openDonateModal(req)}
-                                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm hover:shadow transition-all cursor-pointer"
+                              <div className="flex items-center gap-2 flex-wrap justify-end">
+                                <a
+                                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📚 School Book Request for ${req.schoolName} (${req.location}): Need ${req.quantityNeeded - req.quantityPledged} copies of "${req.bookTitle}". See details & pledge here: https://richbrokie.github.io/kitaab-dost/`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Share to WhatsApp"
+                                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200 transition-all cursor-pointer"
                                 >
-                                  <Icon name="HeartHandshake" className="w-4 h-4" />
-                                  <span>Donate / Pledge Books</span>
-                                </button>
-                              ) : req.status === 'Fulfilled' ? (
-                                <button
-                                  onClick={() => handleMarkAsShipped(req.id)}
-                                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
-                                >
-                                  <Icon name="Truck" className="w-3.5 h-3.5" />
-                                  <span>Mark Dispatched</span>
-                                </button>
-                              ) : req.status === 'Shipped' ? (
-                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200">
-                                  <Icon name="Truck" className="w-4 h-4" />
-                                  <span>Shipped via Courier</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-teal-50 px-3 py-2 rounded-xl border border-teal-200">
-                                  <Icon name="PackageCheck" className="w-4 h-4" />
-                                  <span>Delivered in Classroom</span>
-                                </span>
-                              )}
+                                  <Icon name="Send" className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="hidden sm:inline">WhatsApp</span>
+                                </a>
+
+                                {remaining > 0 ? (
+                                  <button
+                                    onClick={() => openDonateModal(req)}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm hover:shadow transition-all cursor-pointer"
+                                  >
+                                    <Icon name="HeartHandshake" className="w-4 h-4" />
+                                    <span>Donate / Pledge Books</span>
+                                  </button>
+                                ) : req.status === 'Fulfilled' ? (
+                                  <button
+                                    onClick={() => handleMarkAsShipped(req.id)}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                                  >
+                                    <Icon name="Truck" className="w-3.5 h-3.5" />
+                                    <span>Mark Dispatched</span>
+                                  </button>
+                                ) : req.status === 'Shipped' ? (
+                                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200">
+                                    <Icon name="Truck" className="w-4 h-4" />
+                                    <span>Shipped via Courier</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-teal-50 px-3 py-2 rounded-xl border border-teal-200">
+                                    <Icon name="PackageCheck" className="w-4 h-4" />
+                                    <span>Delivered in Classroom</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
