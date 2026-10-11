@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BookBridge | Kitaab Dost Network — School & NGO Book Donation Portal</title>
+  <title>Kitaab Dost Network — School & NGO Book Donation Portal</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React 18 & ReactDOM UMD -->
@@ -1072,139 +1072,25 @@
             </div>
           )}
 
-          {/* Top Role-Separated Portal Navigation Bar */}
-          <div className="bg-stone-900 text-stone-200 text-xs py-2.5 px-4 border-b border-stone-800 sticky top-0 z-40">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <span className={`w-1.5 h-1.5 rounded-full ${dbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                  Live Nationwide Network
-                </span>
-                <span className="text-stone-400 hidden lg:inline">
-                  Verified Textbook Requests & Direct NGO Delivery Network
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Logged in as School: ONLY School Portal + Impact */}
-                {currentUser?.role === 'school' && (
-                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
-                    <button
-                      onClick={() => setActivePortal('school')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'school'
-                          ? 'bg-amber-500 text-stone-950 font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="School" className="w-3.5 h-3.5" />
-                      <span>School Portal</span>
-                    </button>
-                    <button
-                      onClick={() => setActivePortal('impact')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'impact'
-                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
-                      <span>Impact Overview</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Logged in as NGO: ONLY NGO Donor Dashboard + Impact */}
-                {currentUser?.role === 'ngo' && (
-                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
-                    <button
-                      onClick={() => setActivePortal('ngo')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'ngo'
-                          ? 'bg-emerald-500 text-stone-950 font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="HeartHandshake" className="w-3.5 h-3.5" />
-                      <span>NGO Donor Dashboard</span>
-                    </button>
-                    <button
-                      onClick={() => setActivePortal('impact')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'impact'
-                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
-                      <span>Impact Overview</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Guest / Public: Separate Access Buttons */}
-                {!currentUser && (
-                  <div className="flex items-center gap-1.5 bg-stone-800 p-1 rounded-xl border border-stone-700">
-                    <button
-                      onClick={() => setActivePortal('gateway')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'gateway'
-                          ? 'bg-stone-700 text-white font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="Compass" className="w-3.5 h-3.5" />
-                      <span>Public Directory</span>
-                    </button>
-                    <button
-                      onClick={handleOpenSchoolPortal}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-amber-300 hover:text-white hover:bg-stone-700/60 transition-all cursor-pointer"
-                    >
-                      <Icon name="School" className="w-3.5 h-3.5 text-amber-400" />
-                      <span>School Portal</span>
-                    </button>
-                    <button
-                      onClick={handleOpenNgoPortal}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-emerald-300 hover:text-white hover:bg-stone-700/60 transition-all cursor-pointer"
-                    >
-                      <Icon name="HeartHandshake" className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>NGO Portal</span>
-                    </button>
-                    <button
-                      onClick={() => setActivePortal('impact')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                        activePortal === 'impact'
-                          ? 'bg-sky-400 text-stone-950 font-semibold shadow-sm'
-                          : 'text-stone-300 hover:text-white hover:bg-stone-700/60'
-                      }`}
-                    >
-                      <Icon name="BarChart3" className="w-3.5 h-3.5" />
-                      <span>Impact</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Main Brand Header */}
-          <header className="bg-white border-b border-stone-200 shadow-sm">
+          <header className="bg-white border-b border-stone-200 shadow-sm sticky top-0 z-40">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+              <div 
+                className="flex items-center gap-3 cursor-pointer"
+                onClick={() => setActivePortal(currentUser ? currentUser.role : 'gateway')}
+                title="Kitaab Dost Network — Home"
+              >
                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md">
                   <Icon name="BookOpen" className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-xl font-bold tracking-tight text-stone-900">
-                      BookBridge
-                    </h1>
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Kitaab Dost Network
-                    </span>
+                    </h1>
                   </div>
                   <p className="text-xs text-stone-500">
-                    Direct textbook & library bridge linking under-resourced schools with education NGOs
+                    Connecting under-resourced Pakistani classrooms directly with education NGOs
                   </p>
                 </div>
               </div>
@@ -1242,8 +1128,22 @@
                 </div>
               </div>
 
-              {/* User Account / Profile Section */}
-              <div className="flex items-center gap-3">
+              {/* Right Controls: Impact Button + User Account / Login */}
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setActivePortal(activePortal === 'impact' ? (currentUser ? currentUser.role : 'gateway') : 'impact')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                    activePortal === 'impact'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                      : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200 hover:border-stone-300'
+                  }`}
+                  title="View National Transparency & Impact Statistics"
+                >
+                  <Icon name="BarChart3" className={`w-3.5 h-3.5 ${activePortal === 'impact' ? 'text-white' : 'text-sky-600'}`} />
+                  <span>Impact</span>
+                </button>
+
                 {currentUser ? (
                   <div className="flex items-center gap-3 bg-stone-50 px-3.5 py-2 rounded-2xl border border-stone-200 shadow-sm">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-stone-950 font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
@@ -1307,7 +1207,7 @@
                 <div className="text-center max-w-3xl mx-auto space-y-3 pt-2 pb-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
                     <Icon name="BookOpen" className="w-3.5 h-3.5" />
-                    <span>Kitaab Dost Network — Pakistan Textbook Bridge</span>
+                    <span>Kitaab Dost Network — Bridging the Educational Divide</span>
                   </div>
                   <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
                     Select Your Access Portal
@@ -2717,7 +2617,7 @@
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-base font-extrabold tracking-tight text-emerald-800">
-                          BOOKBRIDGE | KITAAB DOST NETWORK
+                          KITAAB DOST NETWORK
                         </span>
                         <span className="text-[10px] bg-stone-900 text-white font-bold px-2 py-0.5 rounded">
                           EDUCATIONAL AID
@@ -3190,7 +3090,7 @@
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 font-semibold text-stone-700">
                 <Icon name="BookOpen" className="w-4 h-4 text-emerald-600" />
-                <span>BookBridge — Connecting Classrooms & Education NGOs</span>
+                <span>Kitaab Dost Network — Connecting Classrooms & Education NGOs</span>
               </div>
               <div>
                 Kitaab Dost Network — Bridging the Textbook Gap in Under-Resourced Pakistani Schools
