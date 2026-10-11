@@ -37,6 +37,30 @@
         animation: none;
       }
     }
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-dispatch-slip, #printable-dispatch-slip * {
+        visibility: visible !important;
+      }
+      #printable-dispatch-slip {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 24px !important;
+        background: white !important;
+        color: black !important;
+        border: none !important;
+        box-shadow: none !important;
+        z-index: 99999 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
@@ -224,6 +248,31 @@
           <rect width="20" height="16" x="2" y="4" rx="2" />
           <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
         </>
+      ),
+      Printer: (
+        <>
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect width="12" height="8" x="6" y="14" />
+        </>
+      ),
+      Shield: (
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+      ),
+      FileText: (
+        <>
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" x2="8" y1="13" y2="13" />
+          <line x1="16" x2="8" y1="17" y2="17" />
+          <line x1="10" x2="8" y1="9" y2="9" />
+        </>
+      ),
+      Eye: (
+        <>
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
       )
     };
 
@@ -248,7 +297,9 @@
       {
         id: 'req-101',
         schoolName: 'Al-Noor Community Model School',
+        emisCode: '35210049',
         location: 'Lahore, Punjab',
+        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
         gradeLevel: 'Grades 6-8 (Middle)',
         subject: 'Science',
         bookTitle: 'General Science & Lab Experiments (PTB Illustrated Edition)',
@@ -273,7 +324,9 @@
       {
         id: 'req-102',
         schoolName: 'Roshni Primary Government School',
+        emisCode: '21094012',
         location: 'Multan, South Punjab',
+        deliveryAddress: 'Government Primary School Campus, Bosan Road, Multan',
         gradeLevel: 'Grades 1-5 (Primary)',
         subject: 'Urdu & Regional',
         bookTitle: 'Nardban-e-Urdu & Illustrated Storybooks Set',
@@ -290,7 +343,9 @@
       {
         id: 'req-103',
         schoolName: 'Umeed Welfare Girls High School',
+        emisCode: '40108821',
         location: 'Karachi, Sindh',
+        deliveryAddress: 'Umeed Welfare Campus, Street 9, Sector 11-A, Orangi Town, Karachi',
         gradeLevel: 'Grades 9-10 (Matric)',
         subject: 'Mathematics',
         bookTitle: 'Secondary Stage Mathematics Class 9 & 10 + Geometry Kits',
@@ -322,7 +377,9 @@
       {
         id: 'req-104',
         schoolName: 'Kohsar Valley Rural Elementary',
+        emisCode: '15302910',
         location: 'Swat, KP',
+        deliveryAddress: 'Kohsar Model School, Mingora Bazar Bypass, Swat',
         gradeLevel: 'Grades 6-8 (Middle)',
         subject: 'English Literature',
         bookTitle: 'Oxford Progressive English Readers & Pocket Dictionaries',
@@ -347,7 +404,9 @@
       {
         id: 'req-105',
         schoolName: 'Chiltan Community School',
+        emisCode: '61092833',
         location: 'Quetta, Balochistan',
+        deliveryAddress: 'Brewery Road near Western Bypass, Quetta',
         gradeLevel: 'Grades 9-10 (Matric)',
         subject: 'Computer Science',
         bookTitle: 'Fundamentals of Computer Science & IT Basics',
@@ -364,7 +423,9 @@
       {
         id: 'req-106',
         schoolName: 'Al-Noor Community Model School',
+        emisCode: '35210049',
         location: 'Lahore, Punjab',
+        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
         gradeLevel: 'Grades 1-5 (Primary)',
         subject: 'Mathematics',
         bookTitle: 'Primary Countdown Mathematics Workbooks (Level 3 & 4)',
@@ -496,7 +557,9 @@
             const formatted = data.map((r) => ({
               id: r.id,
               schoolName: r.school_name,
+              emisCode: r.emis_code || '',
               location: r.location,
+              deliveryAddress: r.delivery_address || '',
               gradeLevel: r.grade_level,
               subject: r.subject,
               bookTitle: r.book_title,
@@ -793,7 +856,9 @@
       const [showNewRequestForm, setShowNewRequestForm] = useState(false);
       const [newRequest, setNewRequest] = useState({
         schoolName: 'Al-Noor Community Model School',
+        emisCode: '35210049',
         location: 'Lahore, Punjab',
+        deliveryAddress: 'Main Gate, Plot 14-B, Sector 4, Near Grid Station, Lahore',
         gradeLevel: 'Grades 6-8 (Middle)',
         subject: 'Science',
         bookTitle: '',
@@ -816,6 +881,9 @@
       // School Confirmation Modal
       const [confirmDeliveryReq, setConfirmDeliveryReq] = useState(null);
       const [receiptNote, setReceiptNote] = useState('');
+
+      // Printable Courier Packing & Dispatch Slip Modal
+      const [activeDispatchSlipReq, setActiveDispatchSlipReq] = useState(null);
 
       const stats = useMemo(() => {
         const totalRequested = requests.reduce((acc, r) => acc + r.quantityNeeded, 0);
@@ -918,7 +986,9 @@
             await supabaseClient.from('book_requests').insert({
               id: created.id,
               school_name: created.schoolName,
+              emis_code: created.emisCode || null,
               location: created.location,
+              delivery_address: created.deliveryAddress || null,
               grade_level: created.gradeLevel,
               subject: created.subject,
               book_title: created.bookTitle,
@@ -1401,6 +1471,38 @@
                       </div>
 
                       <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5 flex items-center justify-between">
+                          <span>Govt EMIS / SEMIS Code</span>
+                          <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Enables Verified Badge</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newRequest.emisCode || ''}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, emisCode: e.target.value })
+                          }
+                          placeholder="e.g., 35210049 (Govt School ID)"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
+                          Courier Delivery / Campus Gate Address *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRequest.deliveryAddress || ''}
+                          onChange={(e) =>
+                            setNewRequest({ ...newRequest, deliveryAddress: e.target.value })
+                          }
+                          placeholder="e.g., Gate 2, Main Campus, Sector 4, Near Grid Station"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
                         <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">
                           Grade Level *
                         </label>
@@ -1638,9 +1740,20 @@
                               </div>
 
                               <div>
-                                <h4 className="text-lg font-bold text-stone-900">
-                                  {req.bookTitle}
-                                </h4>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="text-lg font-bold text-stone-900">
+                                    {req.bookTitle}
+                                  </h4>
+                                  {req.emisCode && (
+                                    <span
+                                      title="Government Education Management Information System verified registration"
+                                      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300"
+                                    >
+                                      <Icon name="ShieldCheck" className="w-3 h-3 text-emerald-600" />
+                                      <span>EMIS #{req.emisCode} (Verified)</span>
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 mt-1">
                                   <span className="inline-flex items-center gap-1 font-medium text-stone-700">
                                     <Icon name="School" className="w-3.5 h-3.5 text-amber-600" />
@@ -1652,7 +1765,23 @@
                                   </span>
                                   <span className="inline-flex items-center gap-1">
                                     <Icon name="Phone" className="w-3.5 h-3.5 text-stone-400" />
-                                    {req.contactPerson} ({req.contactPhone})
+                                    {currentUser ? (
+                                      <span>{req.contactPerson} ({req.contactPhone})</span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAuthMode('signin');
+                                          setShowAuthModal(true);
+                                          triggerToast('Sign-In Required', 'Phone numbers are protected against automated scraping. Sign in or use demo login to view.');
+                                        }}
+                                        className="text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 cursor-pointer font-medium text-[11px] inline-flex items-center gap-1"
+                                        title="Click to sign in and view phone"
+                                      >
+                                        <Icon name="Lock" className="w-2.5 h-2.5 text-amber-600" />
+                                        <span>{req.contactPerson} (+92 ••• •••••••) [Sign in to view]</span>
+                                      </button>
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -1767,15 +1896,26 @@
                                   </button>
                                 ) : null}
 
-                                <a
-                                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📚 School Book Request for ${req.schoolName} (${req.location}): Need ${req.quantityNeeded - req.quantityPledged} copies of "${req.bookTitle}". See details & pledge here: https://richbrokie.github.io/kitaab-dost/`)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 transition-all cursor-pointer"
-                                >
-                                  <Icon name="Send" className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Share on WhatsApp</span>
-                                </a>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveDispatchSlipReq(req)}
+                                    className="py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs flex items-center justify-center gap-1.5 border border-stone-200 transition-all cursor-pointer"
+                                    title="Generate printable parcel packing label for TCS / Leopards"
+                                  >
+                                    <Icon name="Printer" className="w-3.5 h-3.5 text-stone-600" />
+                                    <span>Courier Slip</span>
+                                  </button>
+                                  <a
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📚 School Book Request for ${req.schoolName} (${req.location}): Need ${req.quantityNeeded - req.quantityPledged} copies of "${req.bookTitle}". See details & pledge here: https://richbrokie.github.io/kitaab-dost/`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 transition-all cursor-pointer"
+                                  >
+                                    <Icon name="Send" className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>WhatsApp</span>
+                                  </a>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1998,9 +2138,20 @@
 
                             {/* Book Title & School Info */}
                             <div>
-                              <h3 className="text-lg font-bold text-stone-900 leading-snug">
-                                {req.bookTitle}
-                              </h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-lg font-bold text-stone-900 leading-snug">
+                                  {req.bookTitle}
+                                </h3>
+                                {req.emisCode && (
+                                  <span
+                                    title="Government Education Management Information System verified registration"
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300"
+                                  >
+                                    <Icon name="ShieldCheck" className="w-3 h-3 text-emerald-600" />
+                                    <span>EMIS #{req.emisCode} (Verified)</span>
+                                  </span>
+                                )}
+                              </div>
                               <div className="mt-2 flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-stone-600">
                                 <span className="inline-flex items-center gap-1 font-semibold text-stone-800">
                                   <Icon name="School" className="w-3.5 h-3.5 text-emerald-700" />
@@ -2059,12 +2210,40 @@
                             </div>
 
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-[11px] text-stone-500">
-                                <div>Contact: {req.contactPerson}</div>
+                              <div className="text-[11px] text-stone-500 space-y-0.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-semibold text-stone-700">Contact:</span>
+                                  {currentUser ? (
+                                    <span className="text-stone-800 font-medium">{req.contactPerson} ({req.contactPhone})</span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAuthMode('signin');
+                                        setShowAuthModal(true);
+                                        triggerToast('Sign-In Required', 'Sign in to access school contact phone numbers.');
+                                      }}
+                                      className="text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 cursor-pointer font-medium text-[10px] inline-flex items-center gap-1"
+                                      title="Click to sign in and view phone"
+                                    >
+                                      <Icon name="Lock" className="w-2.5 h-2.5 text-amber-600" />
+                                      <span>{req.contactPerson} (🔒 +92 ••• •••••••)</span>
+                                    </button>
+                                  )}
+                                </div>
                                 <div>Posted {req.createdAt}</div>
                               </div>
 
                               <div className="flex items-center gap-2 flex-wrap justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveDispatchSlipReq(req)}
+                                  title="Print Courier Consignment & Packing Label"
+                                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold border border-stone-200 transition-all cursor-pointer"
+                                >
+                                  <Icon name="Printer" className="w-3.5 h-3.5 text-stone-600" />
+                                  <span className="hidden sm:inline">Slip</span>
+                                </button>
                                 <a
                                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📚 School Book Request for ${req.schoolName} (${req.location}): Need ${req.quantityNeeded - req.quantityPledged} copies of "${req.bookTitle}". See details & pledge here: https://richbrokie.github.io/kitaab-dost/`)}`}
                                   target="_blank"
@@ -2373,6 +2552,231 @@
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* ==========================================
+              MODAL: PRINTABLE COURIER PACKING & DISPATCH SLIP
+             ========================================== */}
+          {activeDispatchSlipReq && (
+            <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-6">
+                {/* Modal Top Control Bar (Hidden on print) */}
+                <div className="flex items-center justify-between border-b border-stone-200 pb-4 no-print">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                      <Icon name="Printer" className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-stone-900">
+                        Courier Packing & Dispatch Docket
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Print-ready label for TCS Express, Leopards, Trax, or Pakistan Post
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                    >
+                      <Icon name="Printer" className="w-4 h-4" />
+                      <span>Print Docket (Ctrl+P)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveDispatchSlipReq(null)}
+                      className="p-2 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                    >
+                      <Icon name="X" className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* The Printable Consignment Document */}
+                <div id="printable-dispatch-slip" className="border-2 border-stone-800 rounded-2xl p-6 bg-white space-y-5 text-stone-900 font-sans text-xs">
+                  {/* Docket Header */}
+                  <div className="flex items-start justify-between border-b-2 border-stone-800 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-extrabold tracking-tight text-emerald-800">
+                          BOOKBRIDGE | KITAAB DOST NETWORK
+                        </span>
+                        <span className="text-[10px] bg-stone-900 text-white font-bold px-2 py-0.5 rounded">
+                          EDUCATIONAL AID
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 font-medium mt-0.5">
+                        Inter-City School Book Consignment & Courier Gate Pass
+                      </p>
+                      <div className="text-[10px] text-stone-500 mt-1 font-mono">
+                        Docket No: KD-PK-{(activeDispatchSlipReq.id || 'REQ').toUpperCase()}-{new Date().getFullYear()}
+                      </div>
+                    </div>
+
+                    {/* Barcode Visual Representation */}
+                    <div className="text-right">
+                      <div className="inline-block p-1 bg-stone-50 border border-stone-300 rounded">
+                        <div className="flex items-end gap-[2px] h-9 px-1">
+                          {[3,1,4,2,1,5,2,4,1,3,2,5,1,4,2,3,1,4,2,1,3,5,2,1,4].map((h, i) => (
+                            <span
+                              key={i}
+                              className="bg-black inline-block"
+                              style={{ width: i % 3 === 0 ? '3px' : '1.5px', height: `${16 + h * 4}px` }}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[9px] font-mono tracking-widest text-center text-stone-700 mt-0.5">
+                          *{(activeDispatchSlipReq.id || 'KD').toUpperCase()}*
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Consignor & Consignee Grid */}
+                  <div className="grid grid-cols-2 gap-4 border-b-2 border-stone-800 pb-4">
+                    {/* Consignor (Sender) */}
+                    <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-300 space-y-1">
+                      <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider flex items-center justify-between">
+                        <span>FROM: CONSIGNOR (DONOR NGO)</span>
+                        <span className="text-emerald-700 font-semibold">VERIFIED</span>
+                      </div>
+                      <div className="text-sm font-bold text-stone-900">
+                        {currentUser?.role === 'ngo' ? currentUser.organization : (activeDispatchSlipReq.pledges[0]?.ngoName || 'Read Pakistan Foundation')}
+                      </div>
+                      <div className="text-stone-700">
+                        <strong>Focal Person:</strong> {currentUser?.role === 'ngo' ? currentUser.name : 'Logistics Desk'}
+                      </div>
+                      <div className="text-stone-700">
+                        <strong>Contact Phone:</strong> {currentUser?.role === 'ngo' ? currentUser.phone : '+92 321 8899001'}
+                      </div>
+                      <div className="text-stone-700">
+                        <strong>Origin Hub:</strong> {currentUser?.role === 'ngo' ? currentUser.location : 'Lahore Central Book Warehouse'}
+                      </div>
+                    </div>
+
+                    {/* Consignee (Receiver School) */}
+                    <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-300 space-y-1">
+                      <div className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider flex items-center justify-between">
+                        <span>TO: CONSIGNEE (SCHOOL)</span>
+                        {activeDispatchSlipReq.emisCode ? (
+                          <span className="text-emerald-800 font-bold bg-emerald-200/80 px-1.5 py-0.2 rounded text-[9px]">
+                            EMIS #{activeDispatchSlipReq.emisCode}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-sm font-bold text-stone-900">
+                        {activeDispatchSlipReq.schoolName}
+                      </div>
+                      <div className="text-stone-800">
+                        <strong>Attention:</strong> {activeDispatchSlipReq.contactPerson}
+                      </div>
+                      <div className="text-stone-800">
+                        <strong>Receiver Phone:</strong> {activeDispatchSlipReq.contactPhone}
+                      </div>
+                      <div className="text-stone-800">
+                        <strong>Delivery Address:</strong> {activeDispatchSlipReq.deliveryAddress || ('Main Campus Reception, ' + activeDispatchSlipReq.location)}
+                      </div>
+                      <div className="text-stone-800 font-semibold">
+                        <strong>Destination City:</strong> {activeDispatchSlipReq.location}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Consignment Package Manifest Table */}
+                  <div className="space-y-1.5 border-b-2 border-stone-800 pb-4">
+                    <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider">
+                      CONSIGNMENT CONTENTS & CURRICULUM SPECIFICATION
+                    </div>
+                    <table className="w-full text-left border border-stone-300 rounded-lg overflow-hidden">
+                      <thead className="bg-stone-100 text-[10px] text-stone-700 uppercase font-semibold">
+                        <tr>
+                          <th className="py-2 px-3 border-b border-stone-300">Item Specification</th>
+                          <th className="py-2 px-3 border-b border-stone-300">Grade / Category</th>
+                          <th className="py-2 px-3 border-b border-stone-300 text-center">Quantity</th>
+                          <th className="py-2 px-3 border-b border-stone-300 text-right">Declared Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200">
+                        <tr>
+                          <td className="py-2.5 px-3 font-semibold text-stone-900">
+                            {activeDispatchSlipReq.bookTitle}
+                          </td>
+                          <td className="py-2.5 px-3 text-stone-600">
+                            {activeDispatchSlipReq.subject} — {activeDispatchSlipReq.gradeLevel}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-center text-emerald-800">
+                            {activeDispatchSlipReq.quantityPledged > 0 ? activeDispatchSlipReq.quantityPledged : activeDispatchSlipReq.quantityNeeded} Copies
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-stone-500 text-[11px]">
+                            Rs. 0 (Free Charity Aid)
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Special Courier Rider Instructions Banner */}
+                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl space-y-1">
+                    <div className="font-bold text-amber-950 flex items-center gap-1.5 text-[11px]">
+                      <span>⚠️ SPECIAL COURIER RIDER INSTRUCTIONS:</span>
+                    </div>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-amber-900 leading-relaxed">
+                      <li>Deliver directly to School Gate / Reception during official school hours (8:00 AM - 2:00 PM).</li>
+                      <li>Handle with care. Consignment contains educational textbooks for underprivileged students. Protect against rain and moisture.</li>
+                      <li>Obtain official school stamp and receiver signature on courier proof of delivery (POD).</li>
+                    </ul>
+                  </div>
+
+                  {/* Signatures & Stamp Blocks */}
+                  <div className="grid grid-cols-3 gap-4 pt-2">
+                    <div className="border border-stone-300 rounded-xl p-3 text-center space-y-5 bg-stone-50">
+                      <div className="text-[10px] uppercase font-bold text-stone-500">Dispatch Officer</div>
+                      <div className="border-t border-stone-300 pt-1 text-[10px] text-stone-600">
+                        Sign & Date
+                      </div>
+                    </div>
+                    <div className="border border-stone-300 rounded-xl p-3 text-center space-y-5 bg-stone-50">
+                      <div className="text-[10px] uppercase font-bold text-stone-500">Courier Pickup Stamp</div>
+                      <div className="border-t border-stone-300 pt-1 text-[10px] text-stone-600">
+                        TCS / Leopards / Post
+                      </div>
+                    </div>
+                    <div className="border border-stone-300 rounded-xl p-3 text-center space-y-5 bg-emerald-50/50 border-emerald-300">
+                      <div className="text-[10px] uppercase font-bold text-emerald-900">School Receiving Stamp</div>
+                      <div className="border-t border-emerald-300 pt-1 text-[10px] text-stone-600">
+                        Principal Stamp & POD
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Controls (Hidden on print) */}
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100 no-print">
+                  <div className="text-xs text-stone-500">
+                    Standard A4 printable layout. Fits thermal packing sleeves.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveDispatchSlipReq(null)}
+                      className="px-4 py-2 rounded-xl border border-stone-300 text-stone-600 font-medium text-xs hover:bg-stone-50 cursor-pointer"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                    >
+                      <Icon name="Printer" className="w-4 h-4" />
+                      <span>Print Dispatch Slip (Ctrl+P)</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
