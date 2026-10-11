@@ -2,19 +2,12 @@
 -- KITAAB DOST NETWORK | BOOKBRIDGE — SUPABASE PRODUCTION DATABASE SCHEMA
 -- Project: https://uqotflogqjlkhozhrpdd.supabase.co
 -- ==============================================================================
--- Instructions:
--- 1. Open your Supabase Dashboard: https://supabase.com/dashboard/project/uqotflogqjlkhozhrpdd/sql
--- 2. Click "New Query" and paste the entire contents of this file.
--- 3. Click "Run" (or Ctrl+Enter) to initialize tables, indexes, realtime, and RLS.
--- ==============================================================================
 
--- 1. Create book_requests table
+-- 1. Ensure new columns exist if table was already created earlier
 CREATE TABLE IF NOT EXISTS public.book_requests (
     id TEXT PRIMARY KEY,
     school_name TEXT NOT NULL,
-    emis_code TEXT,
     location TEXT NOT NULL,
-    delivery_address TEXT,
     grade_level TEXT NOT NULL,
     subject TEXT NOT NULL,
     book_title TEXT NOT NULL,
@@ -28,6 +21,10 @@ CREATE TABLE IF NOT EXISTS public.book_requests (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add new production columns safely to existing table
+ALTER TABLE public.book_requests ADD COLUMN IF NOT EXISTS emis_code TEXT;
+ALTER TABLE public.book_requests ADD COLUMN IF NOT EXISTS delivery_address TEXT;
 
 -- 2. Create pledges table
 CREATE TABLE IF NOT EXISTS public.pledges (
@@ -47,33 +44,47 @@ CREATE INDEX IF NOT EXISTS idx_book_requests_urgency ON public.book_requests(urg
 CREATE INDEX IF NOT EXISTS idx_book_requests_created ON public.book_requests(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pledges_request_id ON public.pledges(request_id);
 
--- 4. Enable Supabase Realtime for instant multi-user updates
-ALTER PUBLICATION supabase_realtime ADD TABLE public.book_requests;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.pledges;
+-- 4. Enable Supabase Realtime for instant multi-user updates (safely ignores if already added)
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.book_requests;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.pledges;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
 
 -- 5. Row-Level Security (RLS) Setup
 ALTER TABLE public.book_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pledges ENABLE ROW LEVEL SECURITY;
 
--- 5a. Public read access (Allows anonymous visitors & NGOs to discover book needs)
+DROP POLICY IF EXISTS "Allow public read access to book_requests" ON public.book_requests;
 CREATE POLICY "Allow public read access to book_requests"
     ON public.book_requests FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Allow public read access to pledges" ON public.pledges;
 CREATE POLICY "Allow public read access to pledges"
     ON public.pledges FOR SELECT
     USING (true);
 
--- 5b. Write policies (Allows authenticated or demo users to publish requests and pledges)
+DROP POLICY IF EXISTS "Allow insert to book_requests" ON public.book_requests;
 CREATE POLICY "Allow insert to book_requests"
     ON public.book_requests FOR INSERT
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow update to book_requests" ON public.book_requests;
 CREATE POLICY "Allow update to book_requests"
     ON public.book_requests FOR UPDATE
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow insert to pledges" ON public.pledges;
 CREATE POLICY "Allow insert to pledges"
     ON public.pledges FOR INSERT
     WITH CHECK (true);
@@ -186,7 +197,21 @@ INSERT INTO public.book_requests (
     '+92 300 4128901',
     'Shipped'
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    emis_code = EXCLUDED.emis_code,
+    delivery_address = EXCLUDED.delivery_address,
+    school_name = EXCLUDED.school_name,
+    location = EXCLUDED.location,
+    grade_level = EXCLUDED.grade_level,
+    subject = EXCLUDED.subject,
+    book_title = EXCLUDED.book_title,
+    description = EXCLUDED.description,
+    quantity_needed = EXCLUDED.quantity_needed,
+    quantity_pledged = EXCLUDED.quantity_pledged,
+    urgency = EXCLUDED.urgency,
+    contact_person = EXCLUDED.contact_person,
+    contact_phone = EXCLUDED.contact_phone,
+    status = EXCLUDED.status;
 
 -- Seed Pledges
 INSERT INTO public.pledges (id, request_id, ngo_name, quantity, note) VALUES
