@@ -16,7 +16,7 @@ Many schools across Pakistan and developing regions face severe textbook shortag
 ---
 
 ## 🚀 Live Demo
-- **GitHub Pages**: `https://<username>.github.io/<repo>/`
+- **GitHub Pages**: `https://richbrokie.github.io/kitaab-dost/`
 
 ---
 
