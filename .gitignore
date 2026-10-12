@@ -6,3 +6,6 @@
 !production-schema.sql
 !AGENTS.md
 !.gitignore
+!security-tests.cjs
+!verify-frontend.cjs
+!TESTING.md

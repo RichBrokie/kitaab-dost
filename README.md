@@ -1,81 +1,38 @@
-# BookBridge | Kitaab Dost Network 📚🇵🇰
+# Kitaab Dost Network
 
-> Direct textbook & library bridge linking under-resourced Pakistani schools with verified education NGOs and donors.
+A book donation network for Pakistani schools, NGOs and individual donors.
 
----
+[Open the website](https://richbrokie.github.io/kitaab-dost/) · [User manual](MANUAL.md) · [Maintenance guide](AGENTS.md)
 
-## 🌟 Live Deployment
-- **Live Website**: [https://richbrokie.github.io/kitaab-dost/](https://richbrokie.github.io/kitaab-dost/)
-- **Hosting**: 100% Free on GitHub Pages (Zero ongoing hosting cost)
-- **Cloud Backend**: Supabase PostgreSQL with Realtime multi-client syncing
+Schools describe exact curriculum needs. Approved donors pledge copies, record individual parcels and see school-confirmed receipts. Requested, pledged, dispatched and received quantities are separate; the site does not infer student reach from promises.
 
----
+## Security model
 
-## 🌟 Overview
-Many schools across Pakistan face severe textbook shortages, where 3 to 4 students are forced to share a single book or lack reading material entirely. 
+- Supabase Auth identifies each account by its immutable user ID. Organization names and editable Auth metadata never authorize access.
+- Public catalog responses exclude phone numbers, contact names and delivery addresses. Contacts are shared with pledge participants, and organization contacts with the administrator for review.
+- All client table access is revoked. RLS is enabled with no permissive policies. The kd_api database function is the only client data API, with explicit checks for every action.
+- Profile approval is a recorded administrator decision. Registration or an EMIS number does not establish verification.
+- Request locks prevent overpledging. Quantities and transitions are validated in a database transaction. Request, pledge and parcel creation support retry identifiers; edits use versions.
+- Existing shared demo accounts are retired. There are no production demo passwords or automatic sample records.
 
-**BookBridge** provides a direct, transparent dual-portal web application:
-1. **School Portal**: Teachers and headmasters submit specific curriculum requests (subject, grade level, textbook edition, quantity needed, urgency, and classroom context).
-2. **NGO Donor Dashboard**: Verified education NGOs and book donors discover verified requests, filter by need and region, pledge books, and provide courier/tracking notes.
-3. **Delivery & Acknowledgment Loop**: Once shipped, schools confirm receipt directly in the classroom with a note back to donors.
-4. **Impact Overview**: Real-time transparency metrics showing books pledged, students impacted, and fulfillment rates by subject.
+## Deployment
 
----
+This is a zero-build static website. index.html contains the UI, CSS and pinned copies of React 18.3.1, React DOM 18.3.1 and Supabase JS 2.117.3. No runtime Babel, Tailwind compiler, floating CDN URL or package installation is needed to serve it. The CSP authorizes each embedded script by its SHA-256 content hash.
 
-## 🚀 Key Production Features
+1. Review and run production-schema.sql as the database owner. It is transactional and repeatable: it creates the kd_* model, removes legacy permissive policies, revokes direct access and preserves legacy rows.
+2. Appoint the initial administrator by an exact, confirmed Auth user ID in kd_admins. Do this privately in the SQL Editor; never publish personal bootstrap scripts or service keys. The app has **Admin → Transfer admin role** for subsequent changes.
+3. In Supabase Authentication URL Configuration, set the Site URL and allowed redirect to the exact production URL above, including its trailing slash. Require email confirmation and configure reliable email delivery. Test confirmation and recovery with an account you control.
+4. Deploy the matching index.html to GitHub Pages main after the migration succeeds. The old frontend is incompatible with the restricted database.
+5. Verify kd_api('health') reports version 2, public table reads fail, and public catalog responses contain no contacts.
 
-### 1. 🛡️ Official EMIS Verification
-- Schools can specify their official provincial **EMIS / SEMIS Code** (e.g., `35210049` for Punjab, `40108821` for Sindh).
-- Request cards showcase an official verified badge (`EMIS #35210049 (Verified)`), allowing NGOs to verify schools directly against government records.
+For local preview, serve the repository with any static server, for example `py -m http.server 3000`. Avoid test donations against production. Use a separate Supabase project or isolated PostgreSQL fixtures for workflow tests.
 
-### 2. 🔒 Contact Privacy & Scraper Protection
-- Anonymous public visitors see masked phone numbers (`+92 ••• ••••••• [Sign in to view]`) to protect school teachers and principals against automated web scrapers.
-- Authenticated schools and NGOs have instant access to direct phone & WhatsApp communication.
+## Existing records and operational limits
 
-### 3. 🖨️ Printable Courier Packing & Dispatch Dockets
-- One-click **Courier Slip** generator formatted for Pakistani parcel couriers: **TCS Express, Leopards Courier, Trax, and Pakistan Post**.
-- Generates a clean A4/thermal printable document (`window.print()`) with:
-  - Consignor (Sender NGO) and Consignee (School) details.
-  - Campus delivery gate instructions & contact phone numbers.
-  - Tracking barcode visualization & reference number (`KD-PK-REQ...`).
-  - Handling instructions for fragile educational material.
-  - POD (Proof of Delivery) stamps & signature blocks.
+The legacy book_requests and pledges tables remain intact but private. They lack trustworthy account ownership and contain unreliable aggregates/statuses, so they are **not automatically attributed or included in the new catalog or impact totals**. Verify ownership, book requirements and quantities before recreating requests under actual owners. Never match ownership solely by organization name or invent missing parcel/receipt information.
 
-### 4. 📲 WhatsApp Direct Share
-- Pre-formatted 1-click sharing buttons to broadcast school book needs to WhatsApp groups, donors, and alumni networks.
+The app provides recent on-site updates and help reports; it does not send automatic pledge emails, book couriers or validate tracking numbers with carriers. Verification is an organizational review, not a government certification. Received quantities are school-reported.
 
-### 5. ⚡ Real-Time Cloud Sync (Supabase)
-- Dual client syncing using `@supabase/supabase-js@2` and PostgreSQL Realtime changes. When an NGO pledges books, any open school screen updates instantly without refreshing.
+The administrator queue displays up to 100 organizations and 100 unresolved reports. Account-level daily limits cover request creation, pledges and reports; infrastructure-level abuse protection and Auth rate limits need operational monitoring. Configure and test backups, email delivery and a support process before wider recruitment.
 
----
-
-## 🛠️ Production Database Setup (Supabase)
-
-To deploy or reset the production cloud database:
-1. Open your Supabase Dashboard: [https://supabase.com/dashboard/project/uqotflogqjlkhozhrpdd/sql](https://supabase.com/dashboard/project/uqotflogqjlkhozhrpdd/sql)
-2. Click **New Query**.
-3. Copy the entire contents of [`production-schema.sql`](./production-schema.sql) and paste it into the SQL editor.
-4. Click **Run**. This will:
-   - Create tables `book_requests` and `pledges`.
-   - Setup indexes for high-speed search and filtering.
-   - Enable Supabase Realtime replication on both tables.
-   - Configure Row-Level Security (RLS) policies for secure access.
-   - Seed initial verified requests and pledges across Lahore, Karachi, Multan, Swat, and Quetta.
-
----
-
-## 💻 Local Development & Testing
-
-```bash
-# Start local HTTP server
-py -m http.server 3000
-
-# Open in browser
-http://localhost:3000/index.html
-```
-
----
-
-## 📄 Documentation
-- Detailed User Guide for Schools & NGOs: [`MANUAL.md`](./MANUAL.md)
-- Production Database Schema: [`production-schema.sql`](./production-schema.sql)
+GitHub Pages does not let this repository set arbitrary response headers. Meta CSP cannot enforce frame-ancestors; a host with response-header controls is needed for framing protection and other server headers. Do not claim those headers exist based on the meta tag.

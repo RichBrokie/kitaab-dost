@@ -1,196 +1,52 @@
-# 📖 BookBridge (Kitaab Dost Network) — Comprehensive User Manual
+# Using Kitaab Dost
 
-> **Official User & Operations Guide** for Schools, Education NGOs, and Book Donors.
+## Create your account
 
----
+Choose **Sign in → Create an account**, enter your own email and a password of at least 12 characters, then confirm your email if prompted. Sign in and complete **Profile** with your school or donor organization, contact person, Pakistan mobile number and city. Individual donors use the donor account type.
 
-## 🌐 Quick Access Links
-- **Live Public URL**: [https://richbrokie.github.io/kitaab-dost/](https://richbrokie.github.io/kitaab-dost/)
-- **Localhost Development URL**: `http://localhost:3000/index.html`
-- **Cloud Database**: Connected to Supabase PostgreSQL (Real-time synchronization across devices)
+An administrator reviews organizations. Until approval, school requests remain private and donor pledges are unavailable. Profile displays the review status and note. An EMIS code alone does not verify a school.
 
----
+Use **Forgot password?** for a reset link. Check spam and contact the operator if account emails do not arrive. Registration without a session does not sign you in.
 
-## 🧭 System Overview & Architecture
+## Schools
 
-BookBridge operates as a **tri-portal platform** accessible from a single interactive interface:
+1. In **My activity**, choose **Request books**.
+2. Give the exact title, grade, subject, board/publisher, language, edition, acceptable condition, quantity and needed-by date.
+3. Keep private details out of the public description. Enter delivery instructions only in the private address field.
+4. After approval, donors can find your request. Pledges and donor contacts appear in **My activity**.
+5. Agree logistics directly with the donor. Each parcel has its own reference and quantity.
+6. Choose **Record receipt / issue** on that parcel. Enter the cumulative number received from this parcel: if 8 arrived earlier and 2 today, enter 10. Report missing, damaged or incorrect books with a note.
 
-```mermaid
-flowchart TD
-    subgraph School["1. School Portal (Teachers & Principals)"]
-        A["Submit Book Request"] --> B["Track Progress & Pledges"]
-        B --> C["Share to WhatsApp"]
-        C --> D["Confirm Delivery in Classroom"]
-    end
+Edit or cancel requests before they have active pledges. Coordinate with donors or report an issue when a committed request needs correction. Received counts cannot be reduced through the normal form; report mistakes to the operator.
 
-    subgraph Supabase["Cloud Database (Supabase PostgreSQL)"]
-        DB[("Real-Time Requests & Pledges Table")]
-    end
+## Donors
 
-    subgraph NGO["2. NGO Donor Dashboard (Donors & Charities)"]
-        E["Browse & Multi-Filter Requests"] --> F["Pledge Books (Partial or Full)"]
-        F --> G["Dispatch Courier & Add Tracking"]
-    end
+1. Search by book, school or city; filter subject, language, priority or exact grade.
+2. Open **View request** and check curriculum, edition and condition.
+3. Choose **Pledge books**, enter what you can actually supply and an optional note.
+4. Contact the school through **My activity** and agree delivery. Phone and WhatsApp links do not send messages automatically.
+5. After handover, **Record parcel dispatch** with the actual quantity, delivery method and tracking/handover reference. Split deliveries into separate parcels.
+6. Print that parcel's **Packing slip** if needed. This does not book a courier, pay postage or prove receipt.
+7. Check school receipt/issue updates in **My activity**.
 
-    subgraph Impact["3. Impact Overview (Public Transparency)"]
-        H["Live Metrics: Books, Students Reached, Subject Distribution"]
-    end
+Cancel an unshipped pledge or adjust it within remaining demand. You cannot reduce it below dispatched copies or cancel a dispatched pledge. Report exceptions through Help.
 
-    A -.->|Insert| DB
-    DB -.->|Live Sync| E
-    F -.->|Pledge| DB
-    DB -.->|Live Update| B
-    G -.->|Shipped| DB
-    D -.->|Delivered| DB
-    DB -.->|Aggregate| H
-```
+## Saves and updates
 
-You can toggle between roles anytime using the top navigation bar:
-- 🏫 **1. School Portal**: For teachers, administrators, and headmasters.
-- 🤝 **2. NGO Donor Dashboard**: For partner NGOs, trusts, and individual book donors.
-- 📊 **3. Impact Overview**: For public metrics and donor transparency.
+Wait for confirmation. Errors preserve form entries for retry. A click alone does not mean a save succeeded. A stale-edit message means another update occurred; refresh before editing again.
 
----
+Use **Refresh** in My activity for new updates. Notifications are inside the website; no automatic donor/courier emails are promised. Sign out on shared devices. Private activity is cleared from the page at sign-out.
 
-## 🏫 Section 1: School Portal Guide
+## Administrator
 
-This portal is designed for schools facing shortages of textbooks, curriculum workbooks, and library storybooks.
+Open **Admin** to review organizations and reports. Verify ownership independently, record evidence/reason and choose approve, keep unapproved or suspend. Review notes are visible to the organization; do not include confidential evidence.
 
-### 1. Submitting a New Book Request
-1. Click the **"1. School Portal"** tab on the top bar.
-2. Click the black **"+ Submit New Book Request"** button on the hero banner.
-3. Fill in the required fields:
-   - **School Name**: Official school title (e.g., *Roshni Primary Government School*).
-   - **City / District Location**: City and province (e.g., *Multan, South Punjab*).
-   - **Grade Level**: Primary (1–5), Middle (6–8), Matric (9–10), or Intermediate (11–12).
-   - **Subject Category**: Science, Mathematics, English, Urdu, CS, or Social Studies.
-   - **Book Title / Curriculum**: Exact title, publisher, and edition (e.g., *PTB Class 8 General Science & Lab Manual*).
-   - **Why are these books needed?**: Explain the classroom situation (e.g., *4 students currently share 1 textbook; upcoming exams in November*).
-   - **Quantity Needed**: Number of copies required (min: 5, max: 500).
-   - **Urgency Level**:
-     - 🔴 **Critical**: Needed immediately for exams or lost to natural disasters/floods.
-     - 🟡 **High**: Needed within the current month/term.
-     - 🔵 **Medium**: General classroom reading corner or library enhancement.
-   - **Focal Person & Phone**: Headmaster/Principal name and active WhatsApp/mobile contact.
-4. Click **"Publish Book Request"**.
-   - *Result*: The request is saved directly to the **Supabase cloud database** and immediately appears in the NGO feed across all devices.
+To appoint a replacement, ask them to create and confirm their own website account. Choose **Transfer admin role**, enter their email twice and acknowledge the change. They gain administrator access immediately and you lose it; your ordinary profile remains. The Supabase project owner can recover access.
 
----
+The Supabase dashboard and website accounts are separate. Website role transfer does not transfer the Supabase project or GitHub repository.
 
-### 2. Tracking Request Status & Delivery
-Every book request moves through a 5-stage lifecycle:
+## Privacy and help
 
-| Status Badge | What it Means | Next Step |
-| :--- | :--- | :--- |
-| ⏳ **Pending** | Request is live; waiting for first donor pledge. | Share link on WhatsApp to boost visibility. |
-| 🕒 **Partially Funded** | An NGO has pledged some books, but more are needed. | Wait for remaining pledges. |
-| ✅ **Fulfilled** | 100% of the requested books have been pledged. | NGO is preparing packages for courier dispatch. |
-| 🚚 **Shipped** | Books are in transit via courier (TCS, Leopards, etc.). | School tracks courier and awaits delivery. |
-| 📦 **Delivered** | Books have arrived and are confirmed in classroom circulation. | Request completed; acknowledgment logged. |
+School name, city and book requirements are public. Pledge participants receive contact/delivery details. Organization contacts and reports are available to the administrator. Keep student identities and personal contact details out of public descriptions.
 
----
-
-### 3. Confirming Arrival of Books (Closing the Loop)
-When an NGO marks your books as **"Shipped"**:
-1. Go to your request card in the **School Portal**.
-2. A purple button labeled **"Confirm Books Received"** will appear on the right side.
-3. Click the button to open the **School Delivery Receipt** dialog.
-4. (Optional) Enter a thank-you note or classroom update (e.g., *"Books arrived in great condition; handed to Grade 6 students today. Thank you!"*).
-5. Click **"Confirm Books Received in Classroom"**.
-   - *Result*: The card changes to **"Delivered in Classroom"** and logs your thank-you receipt to the public activity feed.
-
----
-
-### 4. Sharing Requests on WhatsApp
-Every card has a dedicated green **"Share on WhatsApp"** button:
-- Clicking it opens WhatsApp (web or mobile app) with a pre-formatted message containing:
-  - School name and location
-  - Missing book title and quantity needed
-  - Direct live URL to view and pledge
-- Ideal for sharing in alumni groups, community welfare forums, and education activist chats.
-
----
-
-## 🤝 Section 2: NGO Donor Dashboard Guide
-
-This portal is designed for verified charities, education foundations, alumni associations, and corporate CSR wings looking to fund or ship books.
-
-### 1. Finding & Filtering Needs
-Use the top multi-filter control bar to find exact matches:
-- **Search Bar**: Type any school name, district, city, or book title.
-- **Subject Filter**: Filter specifically for STEM, Languages, Mathematics, or Computer Science.
-- **Grade Filter**: Target specific cohorts (e.g., Primary schools vs. Matric exam classes).
-- **Urgency Filter**: Prioritize **Critical** requests facing upcoming board exams.
-- **Status Tabs**:
-  - `Needs Books`: Only displays requests that still have remaining unfunded copies.
-  - `Completed`: Displays fulfilled, shipped, or delivered requests.
-  - `All`: Full archive view.
-
----
-
-### 2. Pledging Books (Full or Partial)
-1. Find a request you want to support.
-2. Click the green **"Donate / Pledge Books"** button on the bottom right of the card.
-3. In the pledge modal:
-   - **NGO / Donor Organization Name**: Enter your foundation or donor name (e.g., *Read Pakistan Foundation*).
-   - **Number of Books to Pledge**: Enter the exact quantity you can supply.
-     > [!TIP]
-     > Click the shortcut **"Fulfill Entire Remaining"** to automatically set the quantity to 100% of what the school needs.
-   - **Delivery / Dispatch Note**: Add details for the principal (e.g., *"Sending 40 copies from our Lahore warehouse via TCS courier on Tuesday"*).
-   - **Check "Mark Shipped Immediately"**: Check this box if the package is already packed and on its way.
-4. Click **"Confirm Book Pledge"**.
-   - *Result*: The remaining count decreases in real time, the progress bar updates, and the school is notified.
-
----
-
-### 3. Marking Dispatched Packages
-Once an NGO has pledged 100% of the books:
-1. The request status updates to **Fulfilled**.
-2. A blue button labeled **"Mark Dispatched"** appears on the card.
-3. Click **"Mark Dispatched"** once the courier receipt/tracking number has been generated.
-4. The school principal will immediately see the **"Shipped via Courier"** status on their portal.
-
----
-
-## 📊 Section 3: Impact Overview Guide
-
-Click the blue **"3. Impact Overview"** tab at the top to access the public transparency dashboard:
-
-1. **Top Metric Cards**:
-   - **Total Books Pledged**: Real-time counter of all physical books pledged across Pakistan.
-   - **Estimated Students Reached**: Computed estimate (each shared textbook reaches an average of 2 students).
-   - **Fulfilled Requests**: Number of classroom requests that reached 100% funding.
-   - **Registered Schools**: Total under-resourced institutions participating.
-2. **Subject Breakdown**:
-   - Live visual fulfillment bars for Science, Mathematics, English Literature, Urdu & Regional, Computer Science, and Social Studies.
-   - Helps donor organizations see which academic subjects are under-funded and need intervention.
-
----
-
-## ⚡ Section 4: Operational Best Practices for Pakistan
-
-To ensure smooth real-world textbook logistics:
-
-### A. Curriculum Editions & Specifications
-When submitting or pledging books, verify the provincial board:
-- **Punjab**: Punjab Curriculum & Textbook Board (PTB / PCTB).
-- **Sindh**: Sindh Textbook Board (STB Jamshoro).
-- **Khyber Pakhtunkhwa**: KP Textbook Board Peshawar.
-- **Balochistan**: Balochistan Textbook Board Quetta.
-- **Private/Cambridge**: Oxford University Press (OUP), Gaba, or Paramount.
-
-### B. Courier Delivery Options
-When pledging delivery, recommend using tracked couriers:
-- **TCS / Leopards Courier**: Best for urban and semi-urban school addresses.
-- **Pakistan Post (UMS / VPP)**: Recommended for remote rural schools in Swat, Thar, or interior Balochistan.
-- **Daewoo FastEx / Cargo**: Economical for large wholesale box shipments (50+ books) between major transport terminals.
-
----
-
-## 🛠️ Section 5: Troubleshooting & Reset
-
-| Issue | Cause | Solution |
-| :--- | :--- | :--- |
-| **"Supabase Cloud Synced" indicator is yellow** | Offline or internet hiccup | Site automatically uses cached data; re-syncs as soon as connection restores. |
-| **I want to reset back to clean demo data** | Testing sample flows | Click the gray **"Reset Demo"** button on the top right bar. |
-| **Pledge quantity cannot exceed need** | Built-in guard | The modal prevents donating more copies than the school requested to avoid book waste. |
+Use **Help** for delivery problems, identity corrections, privacy requests or mistakes. Read responses in **My activity → Your help requests**. Legacy data remains private for ownership review and does not appear in new totals automatically.
