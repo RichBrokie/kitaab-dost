@@ -111,7 +111,7 @@ END $secure$;
 REVOKE ALL ON SEQUENCE public.kd_events_id_seq FROM PUBLIC, anon, authenticated;
 
 -- Retire shared production demo accounts, preserving account and data history.
-UPDATE auth.users SET banned_until='infinity'::timestamptz
+UPDATE auth.users SET banned_until='2126-10-13 00:00:00+00'::timestamptz
 WHERE lower(email) IN ('school@demo.pk','ngo@demo.pk');
 
 CREATE OR REPLACE FUNCTION public.kd_public_request(p_id uuid)
