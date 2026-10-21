@@ -8,4 +8,5 @@
 !.gitignore
 !security-tests.cjs
 !verify-frontend.cjs
+!verify-language.cjs
 !TESTING.md

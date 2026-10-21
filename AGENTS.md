@@ -1,4 +1,4 @@
-# Kitaab Dost maintenance guide
+# Kitaab سے Dosti maintenance guide
 
 Production: https://richbrokie.github.io/kitaab-dost/
 Repository: git@github.com:RichBrokie/kitaab-dost.git
@@ -9,7 +9,14 @@ Database: uqotflogqjlkhozhrpdd.supabase.co
 - Preserve zero-build architecture. Frontend changes belong in index.html. Do not introduce a framework migration, package.json or bundler without an explicit request.
 - The last script in index.html is readable application source. Preceding scripts are pinned upstream React 18.3.1, React DOM 18.3.1 and Supabase JS 2.117.3. Preserve licenses. Do not edit library code to fix application issues.
 - Script changes require updating SHA-256 hashes in the CSP meta tag. Normalize CRLF to LF when hashing because HTML parsers normalize line endings. Do not replace hashes with unsafe-inline or unsafe-eval. Do not add inline event attributes.
-- Data calls go through kd_api. Never reintroduce direct table access, client-only authorization, unconfirmed local identity or private localStorage caches. Ordinary SDK Auth token storage is the only persistent session state.
+- Data calls go through kd_api. Never reintroduce direct table access, client-only authorization, unconfirmed local identity or private localStorage caches. Ordinary SDK Auth token storage is the only persistent session state. The non-sensitive `kd_language` preference stores only `en` or `ur`.
+
+## Languages and branding
+
+- Display name: Kitaab سے Dosti, with a smaller Urdu سے between the two words; Urdu name: کتاب سے دوستی. Keep the existing GitHub Pages URL and database identifiers.
+- The final script contains the Urdu dictionary, `t()` for interface text, `eventText()` for server-generated updates, and an English/Urdu switch. Preserve canonical database enum values in forms; translate their labels only.
+- Never translate user-authored book titles, descriptions, organization names, addresses, reports or contact data. Keep email, phone and numeric inputs left-to-right; set document language/direction when switching.
+- Run `node verify-frontend.cjs` and `node verify-language.cjs`. Check mobile RTL layout, both languages, preference persistence and school/donor/admin workflows using isolated fixtures.
 - Auth user IDs establish ownership. Names/metadata never authorize access. Only kd_admins establishes administrator authority; only an administrator approves organizations.
 - Never add status to legacy pledges or relabel legacy rows as authenticated contributions. Separate kd_shipments track each dispatch and its cumulative receipt. Totals derive from the ledger.
 - Use transactions, consistent request-then-pledge locks, retry IDs and version checks. Check every API error before success. Never insert receipts as pledges.

@@ -1,6 +1,8 @@
-# Kitaab Dost Network
+# Kitaab سے Dosti
 
 A book donation network for Pakistani schools, NGOs and individual donors.
+
+Use **اردو** in the header or a dialog to switch to Urdu, and **English** to switch back. The site remembers the language on this device. Urdu uses a right-to-left layout; user-entered book details and messages stay in their original language. The existing website URL is unchanged.
 
 [Open the website](https://richbrokie.github.io/kitaab-dost/) · [User manual](MANUAL.md) · [Maintenance guide](AGENTS.md)
 
