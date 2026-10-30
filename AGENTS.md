@@ -25,6 +25,8 @@ Database: uqotflogqjlkhozhrpdd.supabase.co
 
 ## Database
 
+The frontend also contains `reportedRequests`: administrator-reported offline activity confirmed on 2026-10-30 (15 requested, 5 pledged anonymously, 0 dispatched, 0 received). These are disclosed separately from authenticated records and added to Impact totals. They do not create accounts or accept pledges. If importing this activity into the database later, remove the corresponding frontend entries in the same release to prevent double counting. Do not describe them as independently verified or school-confirmed receipts.
+
 kd_profiles: account role and organization contacts; reviewed verification.
 kd_admins: administrator user IDs, separate from school/donor profiles.
 kd_requests: owned curriculum needs and private delivery address.
